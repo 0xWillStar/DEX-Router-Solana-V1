@@ -3,17 +3,16 @@ anchor_version = "0.31.1"
 
 [features]
 resolution = true
-seeds = false
 skip-lint = false
 
 [programs.localnet]
-dex_solana = "6m2CDdhRgxpH4WjvdzxAYbGxwdGUz5MziiL5jek2kBma"
+dex_solana = "H3Ge3P6jVdu8diqYn62ymoxJ7eN9hgzNBATTRDgVokk4"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -25,18 +24,25 @@ shutdown_wait = 2000
 upgradeable = true
 
 [test.validator]
-bind_address = "0.0.0.0"
-url = "https://api.mainnet-beta.solana.com"
-ledger = ".anchor/test-ledger"
-rpc_port = 8899
+bind_address = "127.0.0.1"
 faucet_port = 9901
+url = "https://kora-8cwrc2-fast-mainnet.helius-rpc.com"
+ledger = "./test-ledger"
+rpc_port = 8899
 
-# Token Mint
 [[test.validator.clone]]
-address = "So11111111111111111111111111111111111111112" # WSOL_MINT
+address = "So11111111111111111111111111111111111111112" # WOL
 [[test.validator.clone]]
-address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" # USDC_MINT
+address = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" # USDT
 [[test.validator.clone]]
-address = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" # USDT_MINT
+address = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8" # Raydium AMM V4
 [[test.validator.clone]]
-address = "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So" # mSOL_MINT
+address = "5TLpSPE5T3QJEJKWUTgtg1Vdi5aCu4jAJCjdwL84t1yi" # lookuptable
+[[test.validator.clone]]
+address = "7XawhbbxtsRcQA8KTkHT9f9nc6d69UwqCDh6U5EEbEmX" # amm_id
+[[test.validator.clone]]
+address = "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1" # amm_authority
+[[test.validator.clone]]
+address = "876Z9waBygfzUrwwKFfnRcc7cfY4EQf6Kz1w7GRgbVYW" # pool_coin_token_account
+[[test.validator.clone]]
+address = "CB86HtaqpXbNWbq67L18y5x2RhqoJ6smb7xHUcyWdQAQ" # pool_pc_token_account
