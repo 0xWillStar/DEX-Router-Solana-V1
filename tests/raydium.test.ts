@@ -1,94 +1,29 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, BN } from "@coral-xyz/anchor";
 import { DexSolana } from "../target/types/dex_solana";
-import { PublicKey, VersionedTransaction, TransactionMessage, Transaction, SystemProgram } from "@solana/web3.js";
-import { 
-  getAssociatedTokenAddress, 
-  createAssociatedTokenAccountInstruction,
-  createSyncNativeInstruction,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID
-} from "@solana/spl-token";
+import { PublicKey, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { initializeATA, wrapSOL } from "./util";
 
-describe("my-router", () => {
+describe("raydium test", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.dexSolana as Program<DexSolana>;
 
-  async function initializeATA(
-    mint: PublicKey,
-    owner: PublicKey
-  ): Promise<PublicKey> {
-    const provider = anchor.getProvider();
-    
-    // Calculate ATA account address
-    const ataAddress = await getAssociatedTokenAddress(
-      mint,
-      owner,
-      true, // allowOwnerOffCurve
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-
-    // Check if account already exists
-    const accountInfo = await provider.connection.getAccountInfo(ataAddress);
-    if (accountInfo) {
-      console.log(`ATA account already exists: ${ataAddress.toBase58()} (mint: ${mint.toBase58()}, owner: ${owner.toBase58()})`);
-      return ataAddress;
-    }
-
-    // Create ATA account instruction
-    const createATAInstruction = createAssociatedTokenAccountInstruction(
-      provider.wallet.publicKey, // payer
-      ataAddress, // ata
-      owner, // owner
-      mint, // mint
-      TOKEN_PROGRAM_ID,
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    );
-
-    // Build and send transaction
-    const transaction = new Transaction().add(createATAInstruction);
-    const signature = await provider.sendAndConfirm(transaction);
-    
-    console.log(`ATA account initialized successfully: ${ataAddress.toBase58()} (mint: ${mint.toBase58()}, owner: ${owner.toBase58()}, tx: ${signature})`);
-    return ataAddress;
-  }
-
-  async function wrapSOL(
-    tokenAccount: PublicKey,
-    amount: number = 1_000_000_000,
-    fromWallet?: PublicKey
-  ): Promise<string> {
-    const provider = anchor.getProvider();
-    const wallet = fromWallet || provider.wallet.publicKey;
-
-    // Create transfer instruction
-    const transferInstruction = SystemProgram.transfer({
-      fromPubkey: wallet,
-      toPubkey: tokenAccount,
-      lamports: amount,
-    });
-
-    // Create syncNative instruction to sync WSOL account balance
-    const syncNativeInstruction = createSyncNativeInstruction(
-      tokenAccount,
-      TOKEN_PROGRAM_ID
-    );
-
-    // Build and send transfer and sync transaction
-    const wrapTransaction = new Transaction().add(
-      transferInstruction,
-      syncNativeInstruction
-    );
-    const wrapSignature = await provider.sendAndConfirm(wrapTransaction);
-    console.log(`Successfully transferred ${amount / 1_000_000_000} SOL to ${tokenAccount.toBase58()} and synced: ${wrapSignature}`);
-    
-    return wrapSignature;
-  }
-
-  it("swap_v3", async () => {
+  // [[test.validator.clone]]
+  // address = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8" # Raydium AMM V4
+  // [[test.validator.clone]]
+  // address = "5TLpSPE5T3QJEJKWUTgtg1Vdi5aCu4jAJCjdwL84t1yi" # lookuptable
+  // [[test.validator.clone]]
+  // address = "7XawhbbxtsRcQA8KTkHT9f9nc6d69UwqCDh6U5EEbEmX" # amm_id
+  // [[test.validator.clone]]
+  // address = "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1" # amm_authority
+  // [[test.validator.clone]]
+  // address = "876Z9waBygfzUrwwKFfnRcc7cfY4EQf6Kz1w7GRgbVYW" # pool_coin_token_account
+  // [[test.validator.clone]]
+  // address = "CB86HtaqpXbNWbq67L18y5x2RhqoJ6smb7xHUcyWdQAQ" # pool_pc_token_account
+  it("swap_v2", async () => {
     const FEE_ACCOUNT = new PublicKey("GJHUsZwxMj6CaMznx5x23GX3Ka7d334H3473RdmjSAv5");
 
     // Account addresses
@@ -109,7 +44,7 @@ describe("my-router", () => {
     await wrapSOL(sourceTokenAccount, 2_000_000_000);
 
     // Initialize saAuthority's ATA accounts
-    console.log("Initializing saAuthority's ATA accounts...");
+    console.log("\nInitializing saAuthority's ATA accounts...");
     const sourceTokenSa = await initializeATA(WSOL_MINT, saAuthority);
     const destinationTokenSa = await initializeATA(USDT_MINT, saAuthority);
 
@@ -130,7 +65,7 @@ describe("my-router", () => {
       { pubkey: saAuthority, isSigner: false, isWritable: true }, // saAuthority is a PDA, signed by program using seeds, no external signature needed
       { pubkey: sourceTokenSa, isSigner: false, isWritable: true },
       { pubkey: destinationTokenSa, isSigner: false, isWritable: true },
-      { pubkey: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"), isSigner: false, isWritable: false }, // Token program
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       { pubkey: new PublicKey("7XawhbbxtsRcQA8KTkHT9f9nc6d69UwqCDh6U5EEbEmX"), isSigner: false, isWritable: true },
       { pubkey: new PublicKey("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1"), isSigner: false, isWritable: false },
       { pubkey: new PublicKey("876Z9waBygfzUrwwKFfnRcc7cfY4EQf6Kz1w7GRgbVYW"), isSigner: false, isWritable: true },

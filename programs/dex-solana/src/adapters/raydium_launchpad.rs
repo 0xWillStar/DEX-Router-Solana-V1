@@ -134,7 +134,7 @@ pub fn launchpad_handler<'a>(
     data.extend_from_slice(&0u64.to_le_bytes()); //share_fee_rate
 
     let mut accounts = Vec::with_capacity(LAUNCHPAD_ACCOUNTS_LEN);
-    accounts.push(AccountMeta::new_readonly(swap_accounts.swap_authority_pubkey.key(), true));
+    accounts.push(AccountMeta::new(swap_accounts.swap_authority_pubkey.key(), true));
     accounts.push(AccountMeta::new_readonly(swap_accounts.launchpad_authority.key(), false));
     accounts.push(AccountMeta::new_readonly(swap_accounts.global_config.key(), false));
     accounts.push(AccountMeta::new_readonly(swap_accounts.platform_config.key(), false));
