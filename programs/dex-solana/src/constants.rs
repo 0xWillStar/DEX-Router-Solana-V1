@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 #[constant]
 pub const SEED_SA: &[u8] = b"oo_sa";
 pub const SEED_TEMP_WSOL: &[u8] = b"temp_wsol";
-pub const BUMP_SA: u8 = 253;
+pub const BUMP_SA: u8 = 255;
 
 pub const COMMISSION_RATE_LIMIT: u16 = 1_000; // 10%
 pub const COMMISSION_DENOMINATOR: u64 = 10_000;
@@ -108,13 +108,13 @@ pub const FEE_MULTIPLIER_DENOMINATOR: u64 = 10;
 #[cfg(feature = "staging")]
 pub mod authority_pda {
     use anchor_lang::declare_id;
-    declare_id!("2ngCpRaYqC5oDDhW8b7p2FR3DeuEn9s75RMybxSAaouV"); //pre_deploy
+    declare_id!("7su8FX45KEdRMsbmP5z3R2hQzHGtyL8gjL42NTUgnsFL"); //pre_deploy
 }
 
 #[cfg(not(feature = "staging"))]
 pub mod authority_pda {
     use anchor_lang::declare_id;
-    declare_id!("2ngCpRaYqC5oDDhW8b7p2FR3DeuEn9s75RMybxSAaouV");
+    declare_id!("7su8FX45KEdRMsbmP5z3R2hQzHGtyL8gjL42NTUgnsFL");
 }
 
 #[cfg(feature = "staging")]
@@ -132,13 +132,13 @@ pub mod okx_bridge_program {
 #[cfg(feature = "staging")]
 pub mod wsol_sa {
     use anchor_lang::declare_id;
-    declare_id!("C1yU8UkaGnM4Li2GSbPoZtBd5TeboLtXbWd5w1tAaQtx"); //pre_deploy
+    declare_id!("3tCazYoSi8joXh3neeyW7Kzy81zqECYTufbgpkcM4YXC"); //pre_deploy
 }
 
 #[cfg(not(feature = "staging"))]
 pub mod wsol_sa {
     use anchor_lang::declare_id;
-    declare_id!("C1yU8UkaGnM4Li2GSbPoZtBd5TeboLtXbWd5w1tAaQtx");
+    declare_id!("3tCazYoSi8joXh3neeyW7Kzy81zqECYTufbgpkcM4YXC");
 }
 
 #[cfg(feature = "staging")]

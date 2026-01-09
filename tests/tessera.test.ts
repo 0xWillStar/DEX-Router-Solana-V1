@@ -3,7 +3,7 @@ import { Program, BN } from "@coral-xyz/anchor";
 import { DexSolana } from "../target/types/dex_solana";
 import { PublicKey, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { initializeATA, wrapSOL } from "./util";
+import { initializeATA, wrapSOL, getATAAddress } from "./util";
 
 describe("tessera test", () => {
   // Configure the client to use the local cluster.
@@ -11,13 +11,24 @@ describe("tessera test", () => {
 
   const program = anchor.workspace.dexSolana as Program<DexSolana>;
 
+  const saAuthority = new PublicKey("7su8FX45KEdRMsbmP5z3R2hQzHGtyL8gjL42NTUgnsFL");
+
+  // [[test.validator.clone]]
+  // address = "TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH" # Tessera
+  // [[test.validator.clone]]
+  // address = "8ekCy2jHHUbW2yeNGFWYJT9Hm9FW7SvZcZK66dSZCDiF" # global_state
+  // [[test.validator.clone]]
+  // address = "FLckHLGMJy5gEoXWwcE68Nprde1D4araK4TGLw4pQq2n" # pool_account WSOL-USDC
+  // [[test.validator.clone]]
+  // address = "5pVN5XZB8cYBjNLFrsBCPWkCQBan5K5Mq2dWGzwPgGJV" # base_vault
+  // [[test.validator.clone]]
+  // address = "9t4P5wMwfFkyn92Z7hf463qYKEZf8ERVZsGBEPNp8uJx" # quote_vault
   it("swap_v2", async () => {
     const FEE_ACCOUNT = new PublicKey("GJHUsZwxMj6CaMznx5x23GX3Ka7d334H3473RdmjSAv5");
 
     // Account addresses
     const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
     const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    const saAuthority = new PublicKey("2ngCpRaYqC5oDDhW8b7p2FR3DeuEn9s75RMybxSAaouV");
     
     const provider = anchor.getProvider();
     const wallet = provider.wallet.publicKey;
@@ -33,8 +44,10 @@ describe("tessera test", () => {
 
     // Initialize saAuthority's ATA accounts
     console.log("\nInitializing saAuthority's ATA accounts...");
-    const sourceTokenSa = await initializeATA(WSOL_MINT, saAuthority);
-    const destinationTokenSa = await initializeATA(USDC_MINT, saAuthority);
+    // const sourceTokenSa = await initializeATA(WSOL_MINT, saAuthority);
+    // const destinationTokenSa = await initializeATA(USDC_MINT, saAuthority);
+    const sourceTokenSa = await getATAAddress(WSOL_MINT, saAuthority);
+    const destinationTokenSa = await getATAAddress(USDC_MINT, saAuthority);
 
     const tesseraAccountsConfig = [
       { pubkey: new PublicKey("TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH"), isSigner: false, isWritable: false },

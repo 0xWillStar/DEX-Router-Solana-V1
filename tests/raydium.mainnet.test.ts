@@ -1,30 +1,37 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Program, BN } from "@coral-xyz/anchor";
+import { Program, BN, Idl } from "@coral-xyz/anchor";
 import { DexSolana } from "../target/types/dex_solana";
-import { PublicKey, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
+import { PublicKey, VersionedTransaction, TransactionMessage, Connection, Keypair } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { initializeATA, wrapSOL, getATAAddress } from "./util";
+import * as fs from "fs";
+import * as path from "path";
 
-describe("raydium test", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
+import dexSolanaIDL from '../target/idl/dex_solana.json';
 
-  const program = anchor.workspace.dexSolana as Program<DexSolana>;
+describe("raydium mainnet test", () => {
+  const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL || "https://kora-8cwrc2-fast-mainnet.helius-rpc.com";
+  const connection = new Connection(MAINNET_RPC_URL, "confirmed");
+  
+  const walletPath = process.env.SOLANA_WALLET_PATH || path.join(process.env.HOME || "~", ".config/solana/id.json");
+  const walletKeypair = Keypair.fromSecretKey(
+    new Uint8Array(JSON.parse(fs.readFileSync(walletPath, "utf-8")))
+  );
+  
+  const wallet = new anchor.Wallet(walletKeypair);
+  const provider = new anchor.AnchorProvider(connection, wallet, {
+    commitment: "confirmed",
+  });
+  anchor.setProvider(provider);
 
+  const programId = process.env.MAINNET_PROGRAM_ID || "GUTKWQrx3tgfCBZPRgTQy3pL57KsRHDSZTMeyhWbCNTc";
   const saAuthority = new PublicKey("7su8FX45KEdRMsbmP5z3R2hQzHGtyL8gjL42NTUgnsFL");
+  
+  if (dexSolanaIDL.address !== programId) {
+    dexSolanaIDL.address = programId;
+  }  
+  const program = new Program(dexSolanaIDL, provider) as Program<DexSolana>;
 
-  // [[test.validator.clone]]
-  // address = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8" # Raydium AMM V4
-  // [[test.validator.clone]]
-  // address = "8rG5WFRriQYz3SiYSjB2V7TVCqJiTfur23foeRkWLD67" # lookuptable
-  // [[test.validator.clone]]
-  // address = "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2" # amm_id
-  // [[test.validator.clone]]
-  // address = "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1" # amm_authority
-  // [[test.validator.clone]]
-  // address = "DQyrAcCrDXQ7NeoqGgDCZwBvWDcYmFCjSb9JtteuvPpz" # pool_coin_token_account
-  // [[test.validator.clone]]
-  // address = "HLmqeL62xR1QoZ1HKKbXRrdN1p3phKpxRMb2VVopvBBz" # pool_pc_token_account
   it("swap_v2", async () => {
     const FEE_ACCOUNT = new PublicKey("GJHUsZwxMj6CaMznx5x23GX3Ka7d334H3473RdmjSAv5");
 
@@ -32,17 +39,19 @@ describe("raydium test", () => {
     const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
     const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
     
-    const provider = anchor.getProvider();
-    const wallet = provider.wallet.publicKey;
-    console.log("wallet: ", wallet.toBase58());
+    console.log("wallet: ", wallet.publicKey.toBase58());
+    console.log("RPC URL: ", MAINNET_RPC_URL);
+
+    const balance = await connection.getBalance(wallet.publicKey);
+    console.log("Wallet balance:", balance / 1e9, "SOL");
 
     // Initialize wallet's ATA accounts
     console.log("Initializing wallet's ATA accounts...");
-    const sourceTokenAccount = await initializeATA(WSOL_MINT, wallet);
-    const destinationTokenAccount = await initializeATA(USDC_MINT, wallet);
+    const sourceTokenAccount = await initializeATA(WSOL_MINT, wallet.publicKey);
+    const destinationTokenAccount = await initializeATA(USDC_MINT, wallet.publicKey);
 
     // Transfer SOL to sourceTokenAccount
-    await wrapSOL(sourceTokenAccount, 2_000_000_000);
+    // await wrapSOL(sourceTokenAccount, 1_000_000); // 0.001 SOL
 
     // Initialize saAuthority's ATA accounts
     console.log("\nInitializing saAuthority's ATA accounts...");
@@ -53,19 +62,18 @@ describe("raydium test", () => {
 
     // Address lookup table
     const lookupTableAddress = new PublicKey("8rG5WFRriQYz3SiYSjB2V7TVCqJiTfur23foeRkWLD67");
-    const lookupTableAccount = await provider.connection.getAddressLookupTable(lookupTableAddress);
+    const lookupTableAccount = await connection.getAddressLookupTable(lookupTableAddress);
     
     if (!lookupTableAccount.value) {
       throw new Error("Address lookup table not found");
     }
     console.log("\nlookupTableAccount: ", lookupTableAccount.value.key.toBase58());
     console.log("lookupTableAccount addresses count: ", lookupTableAccount.value.state.addresses.length);
-    // console.log("lookupTableAccount addresses: ", lookupTableAccount.value.state.addresses.map(addr => addr.toBase58()));
 
     // Accounts and their properties required for RaydiumSwapV2
     const raydiumAccountsConfig = [
-      { pubkey: new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"), isSigner: false, isWritable: false }, // Raydium swap program
-      { pubkey: saAuthority, isSigner: false, isWritable: true }, // saAuthority is a PDA, signed by program using seeds, no external signature needed
+      { pubkey: new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"), isSigner: false, isWritable: false },
+      { pubkey: saAuthority, isSigner: false, isWritable: true },
       { pubkey: sourceTokenSa, isSigner: false, isWritable: true },
       { pubkey: destinationTokenSa, isSigner: false, isWritable: true },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -77,14 +85,14 @@ describe("raydium test", () => {
 
     // Build SwapArgs
     const swapArgs = {
-      amountIn: new BN(1000000),
-      expectAmountOut: new BN(133643),
-      minReturn: new BN(133000),
-      amounts: [new BN(1000000)], // Only one route, so only one amount
+      amountIn: new BN(1_000_000), // 0.001 WSOL
+      expectAmountOut: new BN(133_643),
+      minReturn: new BN(133_000),
+      amounts: [new BN(1_000_000)],
       routes: [
         [
           {
-            dexes: [{ raydiumSwapV2: {} }], // RaydiumSwapV2
+            dexes: [{ raydiumSwapV2: {} }],
             weights: Buffer.from([100]), // 100% weight
           },
         ],
@@ -102,7 +110,7 @@ describe("raydium test", () => {
     const transaction = await program.methods
       .swapV3(swapArgs, commissionInfo, platformFeeRate, orderId)
       .accounts({
-        payer: anchor.getProvider().wallet.publicKey,
+        payer: wallet.publicKey,
         sourceTokenAccount: sourceTokenAccount,
         destinationTokenAccount: destinationTokenAccount,
         sourceMint: WSOL_MINT,
@@ -119,13 +127,13 @@ describe("raydium test", () => {
       .transaction();
 
     // Get latest blockhash
-    const { blockhash } = await provider.connection.getLatestBlockhash();
+    const { blockhash } = await connection.getLatestBlockhash("confirmed");
     transaction.recentBlockhash = blockhash;
-    transaction.feePayer = provider.wallet.publicKey;
+    transaction.feePayer = wallet.publicKey;
 
     // Convert transaction to VersionedTransaction and add lookup table
     const messageV0 = new TransactionMessage({
-      payerKey: provider.wallet.publicKey,
+      payerKey: wallet.publicKey,
       recentBlockhash: blockhash,
       instructions: transaction.instructions,
     }).compileToV0Message([lookupTableAccount.value]);
@@ -133,11 +141,11 @@ describe("raydium test", () => {
     const versionedTransaction = new VersionedTransaction(messageV0);
 
     // Sign transaction
-    const signedTransaction = await provider.wallet.signTransaction(versionedTransaction);
+    versionedTransaction.sign([walletKeypair]);
 
     // Simulate transaction first to get detailed error information
     console.log("\nSimulating transaction...");
-    const simulation = await provider.connection.simulateTransaction(signedTransaction, {
+    const simulation = await connection.simulateTransaction(versionedTransaction, {
       replaceRecentBlockhash: true,
       sigVerify: false,
     });
@@ -155,13 +163,18 @@ describe("raydium test", () => {
       console.log("\nSimulation logs:", simulation.value.logs);
     }
 
-    // After successful simulation, send actual transaction
-    console.log("\nSending transaction...");
-    const tx = await provider.connection.sendTransaction(signedTransaction, {
-      skipPreflight: false,
-      preflightCommitment: "confirmed",
-    });
+    // if (process.env.SKIP_SEND === "true") {
+    //   console.log("\nSkipping transaction send (SKIP_SEND=true). Transaction prepared but not sent.");
+    //   return;
+    // }
 
-    console.log("Swap transaction signature:", tx);
+    // // After successful simulation, send actual transaction
+    // console.log("\nSending transaction to mainnet...");
+    // const tx = await connection.sendTransaction(versionedTransaction, {
+    //   skipPreflight: false,
+    //   preflightCommitment: "confirmed",
+    // });
+
+    // console.log("Swap transaction signature:", tx);
   });
 });
