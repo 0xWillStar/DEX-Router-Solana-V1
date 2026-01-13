@@ -35,17 +35,13 @@ describe("tessera test", () => {
     console.log("wallet: ", wallet.toBase58());
 
     // Initialize wallet's ATA accounts
-    console.log("Initializing wallet's ATA accounts...");
+    console.log("\nInitializing wallet's ATA accounts...");
     const sourceTokenAccount = await initializeATA(WSOL_MINT, wallet);
     const destinationTokenAccount = await initializeATA(USDC_MINT, wallet);
 
     // Transfer SOL to sourceTokenAccount
     await wrapSOL(sourceTokenAccount, 2_000_000_000);
 
-    // Initialize saAuthority's ATA accounts
-    console.log("\nInitializing saAuthority's ATA accounts...");
-    // const sourceTokenSa = await initializeATA(WSOL_MINT, saAuthority);
-    // const destinationTokenSa = await initializeATA(USDC_MINT, saAuthority);
     const sourceTokenSa = await getATAAddress(WSOL_MINT, saAuthority);
     const destinationTokenSa = await getATAAddress(USDC_MINT, saAuthority);
 

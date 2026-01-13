@@ -5,8 +5,13 @@ import {
   createAssociatedTokenAccountInstruction,
   createSyncNativeInstruction,
   createCloseAccountInstruction,
+  createMintToInstruction,
+  createSetAuthorityInstruction,
+  getMint,
+  AuthorityType,
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  MINT_SIZE,
 } from "@solana/spl-token";
 
 export async function initializeATA(

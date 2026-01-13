@@ -13,24 +13,30 @@ describe("raydium test", () => {
 
   const saAuthority = new PublicKey("7su8FX45KEdRMsbmP5z3R2hQzHGtyL8gjL42NTUgnsFL");
 
-  // [[test.validator.clone]]
-  // address = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8" # Raydium AMM V4
-  // [[test.validator.clone]]
-  // address = "8rG5WFRriQYz3SiYSjB2V7TVCqJiTfur23foeRkWLD67" # lookuptable
-  // [[test.validator.clone]]
-  // address = "58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2" # amm_id
-  // [[test.validator.clone]]
-  // address = "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1" # amm_authority
-  // [[test.validator.clone]]
-  // address = "DQyrAcCrDXQ7NeoqGgDCZwBvWDcYmFCjSb9JtteuvPpz" # pool_coin_token_account
-  // [[test.validator.clone]]
-  // address = "HLmqeL62xR1QoZ1HKKbXRrdN1p3phKpxRMb2VVopvBBz" # pool_pc_token_account
+// [[test.validator.clone]]
+// address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk" # ASC  
+// [[test.validator.clone]]
+// address = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj" # Raydium Launchpad
+// [[test.validator.clone]]
+// address = "6s1xP3hpbAfFoNtUNF8mfHsjr2Bd97JxFJRWLbL6aHuX" # global_config
+// [[test.validator.clone]]
+// address = "BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4" # platform_config
+// [[test.validator.clone]]
+// address = "Cr2DUkyNn2mL9oyfdHFodsuUeJ8Z2PSQXV7LEUGRc8Hz" # pool_state
+// [[test.validator.clone]]
+// address = "2XoaAqsaNbp7PLin6WLaudVPWNnKAN1jg51moKcas3dU" # base_vault
+// [[test.validator.clone]]
+// address = "6pKBmVLbLNfeJNDj9M2wwYHYF3hhtqGczLiaCbTTuEk2" # quote_vault
+// [[test.validator.clone]]
+// address = "84FqPoha4BJCn4LrXtzFQ73ZEHkbFbXparZMPg7wdDzS" # platform_claim_fee_vault
+// [[test.validator.clone]]
+// address = "8xP9ZgSwidck42FQetc6VLV5cg4Gbms81ZEcQytWqRf8" # creator_claim_fee_vault
   it("swap_v2", async () => {
     const FEE_ACCOUNT = new PublicKey("GJHUsZwxMj6CaMznx5x23GX3Ka7d334H3473RdmjSAv5");
 
     // Account addresses
-    const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
-    const USDC_MINT = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+    const BASE_MINT = new PublicKey("9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk");
+    const QUOTE_MINT = new PublicKey("So11111111111111111111111111111111111111112");
     
     const provider = anchor.getProvider();
     const wallet = provider.wallet.publicKey;
@@ -38,36 +44,35 @@ describe("raydium test", () => {
 
     // Initialize wallet's ATA accounts
     console.log("\nInitializing wallet's ATA accounts...");
-    const sourceTokenAccount = await initializeATA(WSOL_MINT, wallet);
-    const destinationTokenAccount = await initializeATA(USDC_MINT, wallet);
+    const sourceTokenAccount = await initializeATA(QUOTE_MINT, wallet);
+    const destinationTokenAccount = await initializeATA(BASE_MINT, wallet);
 
     // Transfer SOL to sourceTokenAccount
     await wrapSOL(sourceTokenAccount, 2_000_000_000);
 
-    const sourceTokenSa = await getATAAddress(WSOL_MINT, saAuthority);
-    const destinationTokenSa = await getATAAddress(USDC_MINT, saAuthority);
+    const sourceTokenSa = await getATAAddress(QUOTE_MINT, saAuthority);
+    const destinationTokenSa = await getATAAddress(BASE_MINT, saAuthority);
 
-    // Address lookup table
-    const lookupTableAddress = new PublicKey("8rG5WFRriQYz3SiYSjB2V7TVCqJiTfur23foeRkWLD67");
-    const lookupTableAccount = await provider.connection.getAddressLookupTable(lookupTableAddress);    
-    if (!lookupTableAccount.value) {
-      throw new Error("Address lookup table not found");
-    }
-    console.log("\nlookupTableAccount: ", lookupTableAccount.value.key.toBase58());
-    console.log("lookupTableAccount addresses count: ", lookupTableAccount.value.state.addresses.length);
-    // console.log("lookupTableAccount addresses: ", lookupTableAccount.value.state.addresses.map(addr => addr.toBase58()));
-
-    // Accounts and their properties required for RaydiumSwapV2
+    // Accounts and their properties required for RaydiumLaunchpad
     const raydiumAccountsConfig = [
-      { pubkey: new PublicKey("675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"), isSigner: false, isWritable: false }, // Raydium swap program
-      { pubkey: saAuthority, isSigner: false, isWritable: true }, // saAuthority is a PDA, signed by program using seeds, no external signature needed
+      { pubkey: new PublicKey("LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj"), isSigner: false, isWritable: false },
+      { pubkey: saAuthority, isSigner: false, isWritable: true },
       { pubkey: sourceTokenSa, isSigner: false, isWritable: true },
       { pubkey: destinationTokenSa, isSigner: false, isWritable: true },
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: new PublicKey("58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2"), isSigner: false, isWritable: true },
-      { pubkey: new PublicKey("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1"), isSigner: false, isWritable: false },
-      { pubkey: new PublicKey("DQyrAcCrDXQ7NeoqGgDCZwBvWDcYmFCjSb9JtteuvPpz"), isSigner: false, isWritable: true },
-      { pubkey: new PublicKey("HLmqeL62xR1QoZ1HKKbXRrdN1p3phKpxRMb2VVopvBBz"), isSigner: false, isWritable: true },
+      { pubkey: new PublicKey("WLHv2UAZm6z4KyaaELi5pjdbJh6RESMva1Rnn8pJVVh"), isSigner: false, isWritable: false },   // launchpad_authority
+      { pubkey: new PublicKey("6s1xP3hpbAfFoNtUNF8mfHsjr2Bd97JxFJRWLbL6aHuX"), isSigner: false, isWritable: false },  // global_config
+      { pubkey: new PublicKey("BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4"), isSigner: false, isWritable: false },  // platform_config
+      { pubkey: new PublicKey("Cr2DUkyNn2mL9oyfdHFodsuUeJ8Z2PSQXV7LEUGRc8Hz"), isSigner: false, isWritable: true },   // pool_state
+      { pubkey: new PublicKey("2XoaAqsaNbp7PLin6WLaudVPWNnKAN1jg51moKcas3dU"), isSigner: false, isWritable: true },   // base_vault
+      { pubkey: new PublicKey("6pKBmVLbLNfeJNDj9M2wwYHYF3hhtqGczLiaCbTTuEk2"), isSigner: false, isWritable: true },   // quote_vault
+      { pubkey: BASE_MINT, isSigner: false, isWritable: false },   // base_mint
+      { pubkey: QUOTE_MINT, isSigner: false, isWritable: false },   // quote_mint
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },   // base_token_program
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },   // quote_token_program
+      { pubkey: new PublicKey("11111111111111111111111111111111"), isSigner: false, isWritable: false },   // system_program
+      { pubkey: new PublicKey("84FqPoha4BJCn4LrXtzFQ73ZEHkbFbXparZMPg7wdDzS"), isSigner: false, isWritable: true },   // platform_claim_fee_vault
+      { pubkey: new PublicKey("8xP9ZgSwidck42FQetc6VLV5cg4Gbms81ZEcQytWqRf8"), isSigner: false, isWritable: true },   // creator_claim_fee_vault
+      { pubkey: new PublicKey("2DPAtwB8L12vrMRExbLuyGnC7n2J5LNoZQSejeQGpwkr"), isSigner: false, isWritable: false },  // event_authority
     ];
 
     // Build SwapArgs
@@ -79,7 +84,7 @@ describe("raydium test", () => {
       routes: [
         [
           {
-            dexes: [{ raydiumSwapV2: {} }], // RaydiumSwapV2
+            dexes: [{ raydiumLaunchpad: {} }], // RaydiumLaunchpad
             weights: Buffer.from([100]), // 100% weight
           },
         ],
@@ -100,8 +105,8 @@ describe("raydium test", () => {
         payer: anchor.getProvider().wallet.publicKey,
         sourceTokenAccount: sourceTokenAccount,
         destinationTokenAccount: destinationTokenAccount,
-        sourceMint: WSOL_MINT,
-        destinationMint: USDC_MINT,
+        sourceMint: QUOTE_MINT,
+        destinationMint: BASE_MINT,
         commissionAccount: FEE_ACCOUNT,
         platformFeeAccount: FEE_ACCOUNT,
         saAuthority: saAuthority,
@@ -123,7 +128,7 @@ describe("raydium test", () => {
       payerKey: provider.wallet.publicKey,
       recentBlockhash: blockhash,
       instructions: transaction.instructions,
-    }).compileToV0Message([lookupTableAccount.value]);
+    }).compileToV0Message([]);
 
     const versionedTransaction = new VersionedTransaction(messageV0);
 

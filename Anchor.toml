@@ -16,7 +16,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/tessera.test.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/raydium_launchpad.test.ts"
 
 [test]
 startup_wait = 10000
@@ -26,7 +26,7 @@ upgradeable = true
 [test.validator]
 bind_address = "127.0.0.1"
 faucet_port = 9901
-url = "https://kora-8cwrc2-fast-mainnet.helius-rpc.com"
+url = "https://rpc.shyft.to?api_key=36L4sbl-XFVuox_T"
 ledger = "./test-ledger"
 rpc_port = 8899
 
@@ -38,12 +38,20 @@ address = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" # USDT
 address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" # USDC
 
 [[test.validator.clone]]
-address = "TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH" # Tessera
+address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk" # ASC
 [[test.validator.clone]]
-address = "8ekCy2jHHUbW2yeNGFWYJT9Hm9FW7SvZcZK66dSZCDiF" # global_state
+address = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj" # Raydium Launchpad
 [[test.validator.clone]]
-address = "FLckHLGMJy5gEoXWwcE68Nprde1D4araK4TGLw4pQq2n" # pool_account WSOL-USDC
+address = "6s1xP3hpbAfFoNtUNF8mfHsjr2Bd97JxFJRWLbL6aHuX" # global_config
 [[test.validator.clone]]
-address = "5pVN5XZB8cYBjNLFrsBCPWkCQBan5K5Mq2dWGzwPgGJV" # base_vault
+address = "BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4" # platform_config
 [[test.validator.clone]]
-address = "9t4P5wMwfFkyn92Z7hf463qYKEZf8ERVZsGBEPNp8uJx" # quote_vault
+address = "Cr2DUkyNn2mL9oyfdHFodsuUeJ8Z2PSQXV7LEUGRc8Hz" # pool_state
+[[test.validator.clone]]
+address = "2XoaAqsaNbp7PLin6WLaudVPWNnKAN1jg51moKcas3dU" # base_vault
+[[test.validator.clone]]
+address = "6pKBmVLbLNfeJNDj9M2wwYHYF3hhtqGczLiaCbTTuEk2" # quote_vault
+[[test.validator.clone]]
+address = "84FqPoha4BJCn4LrXtzFQ73ZEHkbFbXparZMPg7wdDzS" # platform_claim_fee_vault
+[[test.validator.clone]]
+address = "8xP9ZgSwidck42FQetc6VLV5cg4Gbms81ZEcQytWqRf8" # creator_claim_fee_vault

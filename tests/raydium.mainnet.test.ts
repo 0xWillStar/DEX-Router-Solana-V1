@@ -46,17 +46,13 @@ describe("raydium mainnet test", () => {
     console.log("Wallet balance:", balance / 1e9, "SOL");
 
     // Initialize wallet's ATA accounts
-    console.log("Initializing wallet's ATA accounts...");
+    console.log("\nInitializing wallet's ATA accounts...");
     const sourceTokenAccount = await initializeATA(WSOL_MINT, wallet.publicKey);
     const destinationTokenAccount = await initializeATA(USDC_MINT, wallet.publicKey);
 
     // Transfer SOL to sourceTokenAccount
     // await wrapSOL(sourceTokenAccount, 1_000_000); // 0.001 SOL
 
-    // Initialize saAuthority's ATA accounts
-    console.log("\nInitializing saAuthority's ATA accounts...");
-    // const sourceTokenSa = await initializeATA(WSOL_MINT, saAuthority);
-    // const destinationTokenSa = await initializeATA(USDC_MINT, saAuthority);
     const sourceTokenSa = await getATAAddress(WSOL_MINT, saAuthority);
     const destinationTokenSa = await getATAAddress(USDC_MINT, saAuthority);
 
