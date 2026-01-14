@@ -8,6 +8,7 @@ import {
   createMintToInstruction,
   createSetAuthorityInstruction,
   getMint,
+  getAccount,
   AuthorityType,
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -121,4 +122,68 @@ export async function unwrapSOL(
   );
 
   return unwrapSignature;
+}
+
+export async function mintIfNeeded(
+  mint: PublicKey,
+  tokenAccount: PublicKey,
+  minAmount: bigint = BigInt(0),
+  mintAmount: bigint = BigInt(1_000_000)
+): Promise<string | null> {
+  const provider = anchor.getProvider();
+  const wallet = provider.wallet.publicKey;
+
+  try {
+    const mintInfo = await getMint(provider.connection, mint);
+    const mintAuthority = mintInfo.mintAuthority;
+
+    if (!mintAuthority || !mintAuthority.equals(wallet)) {
+      console.log(
+        `Wallet ${wallet.toBase58()} is not the mint authority for ${mint.toBase58()}. Skipping mint.`
+      );
+      return null;
+    }
+
+    let tokenAccountInfo;
+    try {
+      tokenAccountInfo = await getAccount(provider.connection, tokenAccount);
+    } catch (error) {
+      console.log(
+        `Token account ${tokenAccount.toBase58()} does not exist. Skipping mint.`
+      );
+      return null;
+    }
+
+    if (tokenAccountInfo.amount >= minAmount) {
+      console.log(
+        `Token account ${tokenAccount.toBase58()} has sufficient balance: ${tokenAccountInfo.amount.toString()}. Skipping mint.`
+      );
+      return null;
+    }
+
+    console.log(
+      `Token account ${tokenAccount.toBase58()} has insufficient balance: ${tokenAccountInfo.amount.toString()}. Minting ${mintAmount.toString()} tokens...`
+    );
+
+    const mintInstruction = createMintToInstruction(
+      mint,
+      tokenAccount,
+      wallet,
+      Number(mintAmount),
+      [], // multiSigners
+      TOKEN_PROGRAM_ID
+    );
+
+    const transaction = new Transaction().add(mintInstruction);
+    const signature = await provider.sendAndConfirm(transaction);
+
+    console.log(
+      `Successfully minted ${mintAmount.toString()} tokens to ${tokenAccount.toBase58()}. Signature: ${signature}`
+    );
+
+    return signature;
+  } catch (error) {
+    console.error(`Error in mintIfNeeded:`, error);
+    throw error;
+  }
 }

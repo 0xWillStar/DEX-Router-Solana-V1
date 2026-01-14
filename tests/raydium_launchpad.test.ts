@@ -3,7 +3,7 @@ import { Program, BN } from "@coral-xyz/anchor";
 import { DexSolana } from "../target/types/dex_solana";
 import { PublicKey, VersionedTransaction, TransactionMessage } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { initializeATA, wrapSOL, getATAAddress } from "./util";
+import { initializeATA, wrapSOL, getATAAddress, mintIfNeeded } from "./util";
 
 describe("raydium test", () => {
   // Configure the client to use the local cluster.
@@ -44,14 +44,17 @@ describe("raydium test", () => {
 
     // Initialize wallet's ATA accounts
     console.log("\nInitializing wallet's ATA accounts...");
-    const sourceTokenAccount = await initializeATA(QUOTE_MINT, wallet);
-    const destinationTokenAccount = await initializeATA(BASE_MINT, wallet);
+    const sourceTokenAccount = await initializeATA(BASE_MINT, wallet);
+    const destinationTokenAccount = await initializeATA(QUOTE_MINT, wallet);
+
+    console.log("\nChecking if mint is needed for BASE_MINT...");
+    await mintIfNeeded(BASE_MINT, sourceTokenAccount, BigInt(1_000_000_000), BigInt(1_000_000_000));
 
     // Transfer SOL to sourceTokenAccount
-    await wrapSOL(sourceTokenAccount, 2_000_000_000);
+    // await wrapSOL(sourceTokenAccount, 2_000_000_000);
 
-    const sourceTokenSa = await getATAAddress(QUOTE_MINT, saAuthority);
-    const destinationTokenSa = await getATAAddress(BASE_MINT, saAuthority);
+    const sourceTokenSa = await getATAAddress(BASE_MINT, saAuthority);
+    const destinationTokenSa = await getATAAddress(QUOTE_MINT, saAuthority);
 
     // Accounts and their properties required for RaydiumLaunchpad
     const raydiumAccountsConfig = [
@@ -79,7 +82,7 @@ describe("raydium test", () => {
     const swapArgs = {
       amountIn: new BN(1000000),
       expectAmountOut: new BN(133643),
-      minReturn: new BN(133000),
+      minReturn: new BN(1),
       amounts: [new BN(1000000)], // Only one route, so only one amount
       routes: [
         [
@@ -105,8 +108,10 @@ describe("raydium test", () => {
         payer: anchor.getProvider().wallet.publicKey,
         sourceTokenAccount: sourceTokenAccount,
         destinationTokenAccount: destinationTokenAccount,
-        sourceMint: QUOTE_MINT,
-        destinationMint: BASE_MINT,
+
+        sourceMint: BASE_MINT,
+        destinationMint: QUOTE_MINT,
+
         commissionAccount: FEE_ACCOUNT,
         platformFeeAccount: FEE_ACCOUNT,
         saAuthority: saAuthority,
@@ -131,13 +136,9 @@ describe("raydium test", () => {
     }).compileToV0Message([]);
 
     const versionedTransaction = new VersionedTransaction(messageV0);
-
-    // Sign transaction
-    const signedTransaction = await provider.wallet.signTransaction(versionedTransaction);
-
     // Simulate transaction first to get detailed error information
     console.log("\nSimulating transaction...");
-    const simulation = await provider.connection.simulateTransaction(signedTransaction, {
+    const simulation = await provider.connection.simulateTransaction(versionedTransaction, {
       replaceRecentBlockhash: true,
       sigVerify: false,
     });
@@ -156,6 +157,8 @@ describe("raydium test", () => {
     }
 
     // After successful simulation, send actual transaction
+       // Sign transaction
+    const signedTransaction = await provider.wallet.signTransaction(versionedTransaction);
     console.log("\nSending transaction...");
     const tx = await provider.connection.sendTransaction(signedTransaction, {
       skipPreflight: false,

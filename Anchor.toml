@@ -26,9 +26,13 @@ upgradeable = true
 [test.validator]
 bind_address = "127.0.0.1"
 faucet_port = 9901
-url = "https://rpc.shyft.to?api_key=36L4sbl-XFVuox_T"
+url = "https://kora-8cwrc2-fast-mainnet.helius-rpc.com"
 ledger = "./test-ledger"
 rpc_port = 8899
+
+[[test.validator.account]]
+address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk"
+filename = "tests/mint.json"
 
 [[test.validator.clone]]
 address = "So11111111111111111111111111111111111111112" # WOL
@@ -37,8 +41,8 @@ address = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" # USDT
 [[test.validator.clone]]
 address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" # USDC
 
-[[test.validator.clone]]
-address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk" # ASC
+#[[test.validator.clone]]
+#address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk" # ASC 
 [[test.validator.clone]]
 address = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj" # Raydium Launchpad
 [[test.validator.clone]]
