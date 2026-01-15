@@ -24,8 +24,8 @@ describe("tessera mainnet test", () => {
   });
   anchor.setProvider(provider);
 
-  const programId = process.env.MAINNET_PROGRAM_ID || "GUTKWQrx3tgfCBZPRgTQy3pL57KsRHDSZTMeyhWbCNTc";
-  const saAuthority = new PublicKey("7su8FX45KEdRMsbmP5z3R2hQzHGtyL8gjL42NTUgnsFL");
+  const programId = process.env.MAINNET_PROGRAM_ID || "13kxuZC81hWTX1UnDDxQdpTbTgqug5nHJYiMo2bHC3h7";
+  const saAuthority = new PublicKey("EMeFFvHcarJGS9jPcJu4qeugSmXJn3BJUm53QYv4P9Pk");
     
   if (dexSolanaIDL.address !== programId) {
     dexSolanaIDL.address = programId;

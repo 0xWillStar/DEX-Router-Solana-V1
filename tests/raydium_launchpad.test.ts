@@ -11,7 +11,7 @@ describe("raydium test", () => {
 
   const program = anchor.workspace.dexSolana as Program<DexSolana>;
 
-  const saAuthority = new PublicKey("7su8FX45KEdRMsbmP5z3R2hQzHGtyL8gjL42NTUgnsFL");
+  const saAuthority = new PublicKey("EMeFFvHcarJGS9jPcJu4qeugSmXJn3BJUm53QYv4P9Pk");
 
 // [[test.validator.clone]]
 // address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk" # ASC  
