@@ -170,6 +170,61 @@ pub fn sell3<'a>(
     // log pool address
     swap_accounts.pool.key().log();
 
+    // Parse is_cashback_coin flag from pool account data 
+    let pool_data = swap_accounts.pool.try_borrow_data()?.to_vec();
+    // Pool layout:
+    // discriminator (8) +
+    // pool_bump: u8 (1) +
+    // index: u16 (2) +
+    // 7 * pubkey (7 * 32)  // creator, base_mint, quote_mint, lp_mint,
+    //                      // pool_base_token_account, pool_quote_token_account, coin_creator
+    // lp_supply: u64 (8) +
+    // is_mayhem_mode: bool (1) +
+    // is_cashback_coin: bool (1)
+    let is_cashback_coin_index: usize =
+        8  // discriminator
+        + 1  // pool_bump
+        + 2  // index
+        + 7 * 32  // 7 pubkeys
+        + 8  // lp_supply
+        + 1; // is_mayhem_mode
+    let is_cashback_coin = if pool_data.len() > is_cashback_coin_index {
+        pool_data[is_cashback_coin_index] != 0
+    } else {
+        false
+    };
+
+    if is_cashback_coin {
+        // Cashback pools require two extra accounts on top of the original 22:
+        // tail layout (cashback):
+        // ... fee_config, fee_program, user_volume_accumulator_account(extra),
+        //     user_volume_accumulator(extra), pool_v2
+        require!(
+            remaining_accounts.len() >= *offset + SELL_ACCOUNTS_LEN3 + 2,
+            ErrorCode::InvalidAccountsLength
+        );
+    }
+
+    let (user_volume_accumulator_account, user_volume_accumulator, pool_v2_new) =
+        if is_cashback_coin {
+            let user_volume_accumulator_account = remaining_accounts
+                .get(*offset + SELL_ACCOUNTS_LEN3 - 1)
+                .ok_or(ErrorCode::InvalidAccountsLength)?;
+            let user_volume_accumulator = remaining_accounts
+                .get(*offset + SELL_ACCOUNTS_LEN3)
+                .ok_or(ErrorCode::InvalidAccountsLength)?;
+            let pool_v2_new = remaining_accounts
+                .get(*offset + SELL_ACCOUNTS_LEN3 + 1)
+                .ok_or(ErrorCode::InvalidAccountsLength)?;
+            (
+                Some(user_volume_accumulator_account),
+                Some(user_volume_accumulator),
+                pool_v2_new,
+            )
+        } else {
+            (None, None, swap_accounts.pool_v2)
+        };
+
     before_check(
         swap_accounts.swap_authority_pubkey,
         &swap_accounts.swap_source_token,
@@ -187,7 +242,7 @@ pub fn sell3<'a>(
     data.extend_from_slice(&amount_in.to_le_bytes()); // base_amount_in
     data.extend_from_slice(&1u64.to_le_bytes()); // min_quote_amount_out
 
-    let accounts = vec![
+    let mut accounts = vec![
         AccountMeta::new(swap_accounts.pool.key(), false),
         AccountMeta::new(swap_accounts.swap_authority_pubkey.key(), true),
         AccountMeta::new_readonly(swap_accounts.global_config.key(), false),
@@ -209,10 +264,26 @@ pub fn sell3<'a>(
         AccountMeta::new_readonly(swap_accounts.coin_creator_vault_authority.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_config.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_program.key(), false),
-        AccountMeta::new_readonly(swap_accounts.pool_v2.key(), false),
+        AccountMeta::new_readonly(pool_v2_new.key(), false),
     ];
 
-    let account_infos = vec![
+    if let (Some(user_volume_accumulator_account), Some(user_volume_accumulator)) =
+        (user_volume_accumulator_account, user_volume_accumulator)
+    {
+        // insert user_volume_accumulator_account and user_volume_accumulator
+        // directly before pool_v2
+        let insert_index = accounts.len().saturating_sub(1);
+        accounts.insert(
+            insert_index,
+            AccountMeta::new(user_volume_accumulator_account.key(), false),
+        );
+        accounts.insert(
+            insert_index + 1,
+            AccountMeta::new(user_volume_accumulator.key(), false),
+        );
+    }
+
+    let mut account_infos = vec![
         swap_accounts.pool.to_account_info(),
         swap_accounts.swap_authority_pubkey.to_account_info(),
         swap_accounts.global_config.to_account_info(),
@@ -234,9 +305,19 @@ pub fn sell3<'a>(
         swap_accounts.coin_creator_vault_authority.to_account_info(),
         swap_accounts.fee_config.to_account_info(),
         swap_accounts.fee_program.to_account_info(),
-        swap_accounts.pool_v2.to_account_info(),
+        pool_v2_new.to_account_info(),
         payer.unwrap().to_account_info(),
     ];
+
+    if let (Some(user_volume_accumulator_account), Some(user_volume_accumulator)) =
+        (user_volume_accumulator_account, user_volume_accumulator)
+    {
+        // insert user_volume_accumulator_account and user_volume_accumulator
+        // directly before pool_v2
+        let insert_index = account_infos.len().saturating_sub(2);
+        account_infos.insert(insert_index, user_volume_accumulator_account.clone());
+        account_infos.insert(insert_index + 1, user_volume_accumulator.clone());
+    }
 
     let instruction =
         Instruction { program_id: swap_accounts.dex_program_id.key(), accounts, data };
@@ -252,7 +333,7 @@ pub fn sell3<'a>(
         instruction,
         hop,
         offset,
-        SELL_ACCOUNTS_LEN3,
+        if is_cashback_coin { SELL_ACCOUNTS_LEN3 + 2 } else { SELL_ACCOUNTS_LEN3 },
         proxy_swap,
         owner_seeds,
     )?;
@@ -375,6 +456,49 @@ pub fn buy3<'a>(
     // log pool address
     swap_accounts.pool.key().log();
 
+    // Parse is_cashback_coin flag from pool account data
+    let pool_data = swap_accounts.pool.try_borrow_data()?.to_vec();
+    // Pool layout :
+    // discriminator (8) +
+    // pool_bump: u8 (1) +
+    // index: u16 (2) +
+    // 7 * pubkey (7 * 32)  // creator, base_mint, quote_mint, lp_mint,
+    //                      // pool_base_token_account, pool_quote_token_account, coin_creator
+    // lp_supply: u64 (8) +
+    // is_mayhem_mode: bool (1) +
+    // is_cashback_coin: bool (1)
+    let is_cashback_coin_index: usize =
+        8  // discriminator
+        + 1  // pool_bump
+        + 2  // index
+        + 7 * 32  // 7 pubkeys
+        + 8  // lp_supply
+        + 1; // is_mayhem_mode
+    let is_cashback_coin = if pool_data.len() > is_cashback_coin_index {
+        pool_data[is_cashback_coin_index] != 0
+    } else {
+        false
+    };
+
+    if is_cashback_coin {
+        require!(
+            remaining_accounts.len() >= *offset + BUY_ACCOUNTS_LEN3 + 1,
+            ErrorCode::InvalidAccountsLength
+        );
+    }
+
+    let (user_volume_accumulator_account, pool_v2_new) = if is_cashback_coin {
+        let user_volume_accumulator_account = remaining_accounts
+            .get(*offset + BUY_ACCOUNTS_LEN3 - 1)
+            .ok_or(ErrorCode::InvalidAccountsLength)?;
+        let pool_v2_new = remaining_accounts
+            .get(*offset + BUY_ACCOUNTS_LEN3)
+            .ok_or(ErrorCode::InvalidAccountsLength)?;
+        (Some(user_volume_accumulator_account), pool_v2_new)
+    } else {
+        (None, swap_accounts.pool_v2)
+    };
+
     before_check(
         swap_accounts.swap_authority_pubkey,
         &swap_accounts.swap_source_token,
@@ -390,7 +514,7 @@ pub fn buy3<'a>(
     data.extend_from_slice(&amount_in.to_le_bytes()); // spendable_quote_in
     data.extend_from_slice(&1u64.to_le_bytes()); // min_base_amount_out
 
-    let accounts = vec![
+    let mut accounts = vec![
         AccountMeta::new(swap_accounts.pool.key(), false),
         AccountMeta::new(swap_accounts.swap_authority_pubkey.key(), true),
         AccountMeta::new_readonly(swap_accounts.global_config.key(), false),
@@ -414,10 +538,19 @@ pub fn buy3<'a>(
         AccountMeta::new(swap_accounts.user_volume_accumulator.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_config.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_program.key(), false),
-        AccountMeta::new_readonly(swap_accounts.pool_v2.key(), false),
+        AccountMeta::new_readonly(pool_v2_new.key(), false),
     ];
 
-    let mut account_infos = Vec::with_capacity(BUY_ACCOUNTS_LEN3);
+    if let Some(user_volume_accumulator_account) = user_volume_accumulator_account {
+        // insert user_volume_accumulator_account directly before pool_v2
+        let insert_index = accounts.len().saturating_sub(1);
+        accounts.insert(
+            insert_index,
+            AccountMeta::new(user_volume_accumulator_account.key(), false),
+        );
+    }
+
+    let mut account_infos = Vec::with_capacity(BUY_ACCOUNTS_LEN3 + 1);
     account_infos.push(swap_accounts.pool.to_account_info());
     account_infos.push(swap_accounts.swap_authority_pubkey.to_account_info());
     account_infos.push(swap_accounts.global_config.to_account_info());
@@ -441,7 +574,13 @@ pub fn buy3<'a>(
     account_infos.push(swap_accounts.user_volume_accumulator.to_account_info());
     account_infos.push(swap_accounts.fee_config.to_account_info());
     account_infos.push(swap_accounts.fee_program.to_account_info());
-    account_infos.push(swap_accounts.pool_v2.to_account_info());
+    account_infos.push(pool_v2_new.to_account_info());
+    
+    if let Some(user_volume_accumulator_account) = user_volume_accumulator_account {
+        // insert user_volume_accumulator_account directly before pool_v2
+        let insert_index = account_infos.len().saturating_sub(1);
+        account_infos.insert(insert_index, user_volume_accumulator_account.clone());
+    }
 
     let instruction =
         Instruction { program_id: swap_accounts.dex_program_id.key(), accounts, data };
@@ -457,7 +596,7 @@ pub fn buy3<'a>(
         instruction,
         hop,
         offset,
-        BUY_ACCOUNTS_LEN3,
+        if is_cashback_coin { BUY_ACCOUNTS_LEN3 + 1 } else { BUY_ACCOUNTS_LEN3 },
         proxy_swap,
         owner_seeds,
     )?;

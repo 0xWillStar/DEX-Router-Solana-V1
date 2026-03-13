@@ -1124,6 +1124,40 @@ pub fn sell2<'a>(
     )?;
 
     let bonding_curve_data = swap_accounts.bonding_curve.try_borrow_data()?.to_vec();
+    // parse is_cashback_coin flag from bonding_curve account data
+    // layout reference:
+    // discriminator (8) +
+    // 5 * u64 (40) +
+    // 1 * bool (1) +
+    // 32 bytes pubkey (creator) +
+    // 1 * bool (is_mayhem_mode) +
+    // 1 * bool (is_cashback_coin)
+    let is_cashback_coin_index: usize = 8 + 5 * 8 + 1 + 32 + 1;
+    let is_cashback_coin = if bonding_curve_data.len() > is_cashback_coin_index {
+        bonding_curve_data[is_cashback_coin_index] != 0
+    } else {
+        false
+    };
+
+    if is_cashback_coin {
+        require!(
+            remaining_accounts.len() >= *offset + SELL_ACCOUNTS_LEN2 + 1,
+            ErrorCode::InvalidAccountsLength
+        );
+    }
+
+    let (user_volume_accumulator, bonding_curve_v2_new) = if is_cashback_coin {
+        let user_volume_accumulator = remaining_accounts
+            .get(*offset + SELL_ACCOUNTS_LEN2 - 1)
+            .ok_or(ErrorCode::InvalidAccountsLength)?;
+        let bonding_curve_v2_new = remaining_accounts
+            .get(*offset + SELL_ACCOUNTS_LEN2)
+            .ok_or(ErrorCode::InvalidAccountsLength)?;
+        (Some(user_volume_accumulator), bonding_curve_v2_new)
+    } else {
+        (None, swap_accounts.bonding_curve_v2)
+    };
+
     let virtual_token_reserves = u64::from_le_bytes(*array_ref![&bonding_curve_data, 8, 8]);
     let virtual_sol_reserves = u64::from_le_bytes(*array_ref![&bonding_curve_data, 16, 8]);
     let mint_supply = u64::from_le_bytes(*array_ref![&bonding_curve_data, 40, 8]);
@@ -1149,7 +1183,7 @@ pub fn sell2<'a>(
     data.extend_from_slice(&amount_in.to_le_bytes()); // token_amount_in
     data.extend_from_slice(&1u64.to_le_bytes()); // min_sol_amount_out
 
-    let accounts = vec![
+    let mut accounts = vec![
         AccountMeta::new_readonly(swap_accounts.global.key(), false),
         AccountMeta::new(swap_accounts.fee_recipient.key(), false),
         AccountMeta::new_readonly(swap_accounts.mint.key(), false),
@@ -1164,10 +1198,19 @@ pub fn sell2<'a>(
         AccountMeta::new_readonly(swap_accounts.dex_program_id.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_config.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_program.key(), false),
-        AccountMeta::new_readonly(swap_accounts.bonding_curve_v2.key(), false),
+        AccountMeta::new_readonly(bonding_curve_v2_new.key(), false),
     ];
 
-    let account_infos = vec![
+    if let Some(user_volume_accumulator) = user_volume_accumulator {
+        // insert user_volume_accumulator directly before bonding_curve_v2
+        let insert_index = accounts.len().saturating_sub(1);
+        accounts.insert(
+            insert_index,
+            AccountMeta::new(user_volume_accumulator.key(), false),
+        );
+    }
+
+    let mut account_infos = vec![
         swap_accounts.global.to_account_info(),
         swap_accounts.fee_recipient.to_account_info(),
         swap_accounts.mint.to_account_info(),
@@ -1183,10 +1226,16 @@ pub fn sell2<'a>(
         swap_accounts.dex_program_id.to_account_info(),
         swap_accounts.fee_config.to_account_info(),
         swap_accounts.fee_program.to_account_info(),
-        swap_accounts.bonding_curve_v2.to_account_info(),
+        bonding_curve_v2_new.to_account_info(),
         swap_accounts.swap_destination_token.to_account_info(),
         payer.unwrap().to_account_info(),
     ];
+
+    if let Some(user_volume_accumulator) = user_volume_accumulator {
+        // insert user_volume_accumulator directly before bonding_curve_v2
+        let insert_index = account_infos.len().saturating_sub(3);
+        account_infos.insert(insert_index, user_volume_accumulator.clone());
+    }
 
     let instruction =
         Instruction { program_id: swap_accounts.dex_program_id.key(), accounts, data };
@@ -1203,7 +1252,7 @@ pub fn sell2<'a>(
         instruction,
         hop,
         offset,
-        SELL_ACCOUNTS_LEN2,
+        if is_cashback_coin { SELL_ACCOUNTS_LEN2 + 1 } else { SELL_ACCOUNTS_LEN2 },
         proxy_swap,
         owner_seeds,
     )?;
