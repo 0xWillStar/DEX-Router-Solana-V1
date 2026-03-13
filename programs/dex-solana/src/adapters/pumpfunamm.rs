@@ -36,8 +36,9 @@ pub struct PumpfunammSellAccounts3<'info> {
     pub coin_creator_vault_authority: &'info AccountInfo<'info>,
     pub fee_config: &'info AccountInfo<'info>,
     pub fee_program: &'info AccountInfo<'info>,
+    pub pool_v2: &'info AccountInfo<'info>,
 }
-const SELL_ACCOUNTS_LEN3: usize = 21;
+const SELL_ACCOUNTS_LEN3: usize = 22;
 
 impl<'info> PumpfunammSellAccounts3<'info> {
     fn parse_accounts(accounts: &'info [AccountInfo<'info>], offset: usize) -> Result<Self> {
@@ -63,6 +64,7 @@ impl<'info> PumpfunammSellAccounts3<'info> {
             coin_creator_vault_authority,
             fee_config,
             fee_program,
+            pool_v2,
         ]: &[AccountInfo<'info>; SELL_ACCOUNTS_LEN3] =
             array_ref![accounts, offset, SELL_ACCOUNTS_LEN3];
 
@@ -92,6 +94,7 @@ impl<'info> PumpfunammSellAccounts3<'info> {
             coin_creator_vault_authority,
             fee_config,
             fee_program,
+            pool_v2,
         })
     }
 }
@@ -206,6 +209,7 @@ pub fn sell3<'a>(
         AccountMeta::new_readonly(swap_accounts.coin_creator_vault_authority.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_config.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_program.key(), false),
+        AccountMeta::new_readonly(swap_accounts.pool_v2.key(), false),
     ];
 
     let account_infos = vec![
@@ -230,6 +234,7 @@ pub fn sell3<'a>(
         swap_accounts.coin_creator_vault_authority.to_account_info(),
         swap_accounts.fee_config.to_account_info(),
         swap_accounts.fee_program.to_account_info(),
+        swap_accounts.pool_v2.to_account_info(),
         payer.unwrap().to_account_info(),
     ];
 
@@ -279,8 +284,9 @@ pub struct PumpfunammBuyAccounts3<'info> {
     pub user_volume_accumulator: &'info AccountInfo<'info>,
     pub fee_config: &'info AccountInfo<'info>,
     pub fee_program: &'info AccountInfo<'info>,
+    pub pool_v2: &'info AccountInfo<'info>,
 }
-const BUY_ACCOUNTS_LEN3: usize = 23;
+const BUY_ACCOUNTS_LEN3: usize = 24;
 
 impl<'info> PumpfunammBuyAccounts3<'info> {
     fn parse_accounts(accounts: &'info [AccountInfo<'info>], offset: usize) -> Result<Self> {
@@ -308,6 +314,7 @@ impl<'info> PumpfunammBuyAccounts3<'info> {
             user_volume_accumulator,
             fee_config,
             fee_program,
+            pool_v2,
         ]: &[AccountInfo<'info>; BUY_ACCOUNTS_LEN3] =
             array_ref![accounts, offset, BUY_ACCOUNTS_LEN3];
 
@@ -339,6 +346,7 @@ impl<'info> PumpfunammBuyAccounts3<'info> {
             user_volume_accumulator,
             fee_config,
             fee_program,
+            pool_v2,
         })
     }
 }
@@ -406,6 +414,7 @@ pub fn buy3<'a>(
         AccountMeta::new(swap_accounts.user_volume_accumulator.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_config.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_program.key(), false),
+        AccountMeta::new_readonly(swap_accounts.pool_v2.key(), false),
     ];
 
     let mut account_infos = Vec::with_capacity(BUY_ACCOUNTS_LEN3);
@@ -432,6 +441,7 @@ pub fn buy3<'a>(
     account_infos.push(swap_accounts.user_volume_accumulator.to_account_info());
     account_infos.push(swap_accounts.fee_config.to_account_info());
     account_infos.push(swap_accounts.fee_program.to_account_info());
+    account_infos.push(swap_accounts.pool_v2.to_account_info());
 
     let instruction =
         Instruction { program_id: swap_accounts.dex_program_id.key(), accounts, data };

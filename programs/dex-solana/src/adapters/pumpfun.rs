@@ -813,8 +813,9 @@ pub struct PumpfunBuyAccounts2<'info> {
     pub user_volume_accumulator: &'info AccountInfo<'info>,
     pub fee_config: &'info AccountInfo<'info>,
     pub fee_program: &'info AccountInfo<'info>,
+    pub bonding_curve_v2: &'info AccountInfo<'info>,
 }
-const BUY_ACCOUNTS_LEN2: usize = 18;
+const BUY_ACCOUNTS_LEN2: usize = 19;
 
 impl<'info> PumpfunBuyAccounts2<'info> {
     fn parse_accounts(accounts: &'info [AccountInfo<'info>], offset: usize) -> Result<Self> {
@@ -837,6 +838,7 @@ impl<'info> PumpfunBuyAccounts2<'info> {
             user_volume_accumulator,
             fee_config,
             fee_program,
+            bonding_curve_v2,
         ]: &[AccountInfo<'info>; BUY_ACCOUNTS_LEN2] =
             array_ref![accounts, offset, BUY_ACCOUNTS_LEN2];
 
@@ -859,6 +861,7 @@ impl<'info> PumpfunBuyAccounts2<'info> {
             user_volume_accumulator,
             fee_config,
             fee_program,
+            bonding_curve_v2,
         })
     }
 
@@ -958,6 +961,7 @@ pub fn buy2<'a>(
         AccountMeta::new(swap_accounts.user_volume_accumulator.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_config.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_program.key(), false),
+        AccountMeta::new_readonly(swap_accounts.bonding_curve_v2.key(), false),
     ];
 
     let account_infos = vec![
@@ -978,6 +982,7 @@ pub fn buy2<'a>(
         swap_accounts.user_volume_accumulator.to_account_info(),
         swap_accounts.fee_config.to_account_info(),
         swap_accounts.fee_program.to_account_info(),
+        swap_accounts.bonding_curve_v2.to_account_info(),
         payer.unwrap().to_account_info(),
         swap_accounts.swap_source_token.to_account_info(),
     ];
@@ -1020,9 +1025,10 @@ pub struct PumpfunSellAccounts2<'info> {
     pub event_authority: &'info AccountInfo<'info>,
     pub fee_config: &'info AccountInfo<'info>,
     pub fee_program: &'info AccountInfo<'info>,
+    pub bonding_curve_v2: &'info AccountInfo<'info>,
 }
 
-const SELL_ACCOUNTS_LEN2: usize = 16;
+const SELL_ACCOUNTS_LEN2: usize = 17;
 
 impl<'info> PumpfunSellAccounts2<'info> {
     fn parse_accounts(accounts: &'info [AccountInfo<'info>], offset: usize) -> Result<Self> {
@@ -1043,6 +1049,7 @@ impl<'info> PumpfunSellAccounts2<'info> {
             event_authority,
             fee_config,
             fee_program,
+            bonding_curve_v2,
         ]: &[AccountInfo<'info>; SELL_ACCOUNTS_LEN2] =
             array_ref![accounts, offset, SELL_ACCOUNTS_LEN2];
 
@@ -1063,6 +1070,7 @@ impl<'info> PumpfunSellAccounts2<'info> {
             event_authority,
             fee_config,
             fee_program,
+            bonding_curve_v2,
         })
     }
 
@@ -1156,6 +1164,7 @@ pub fn sell2<'a>(
         AccountMeta::new_readonly(swap_accounts.dex_program_id.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_config.key(), false),
         AccountMeta::new_readonly(swap_accounts.fee_program.key(), false),
+        AccountMeta::new_readonly(swap_accounts.bonding_curve_v2.key(), false),
     ];
 
     let account_infos = vec![
@@ -1174,6 +1183,7 @@ pub fn sell2<'a>(
         swap_accounts.dex_program_id.to_account_info(),
         swap_accounts.fee_config.to_account_info(),
         swap_accounts.fee_program.to_account_info(),
+        swap_accounts.bonding_curve_v2.to_account_info(),
         swap_accounts.swap_destination_token.to_account_info(),
         payer.unwrap().to_account_info(),
     ];
