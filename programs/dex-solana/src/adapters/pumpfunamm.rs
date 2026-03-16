@@ -434,7 +434,8 @@ impl<'info> PumpfunammBuyAccounts3<'info> {
 pub struct PumpfunammBuyProcessor;
 impl DexProcessor for PumpfunammBuyProcessor {}
 
-pub fn buy3<'a>(
+#[inline(never)]
+fn buy3_inner<'a>(
     remaining_accounts: &'a [AccountInfo<'a>],
     amount_in: u64,
     offset: &mut usize,
@@ -442,44 +443,9 @@ pub fn buy3<'a>(
     hop: usize,
     proxy_swap: bool,
     owner_seeds: Option<&[&[&[u8]]]>,
+    is_cashback_coin: bool,
+    swap_accounts: &mut PumpfunammBuyAccounts3<'a>,
 ) -> Result<u64> {
-    msg!("Dex::Pumpfunamm amount_in: {}, offset: {}", amount_in, offset);
-    require!(
-        remaining_accounts.len() >= *offset + BUY_ACCOUNTS_LEN3,
-        ErrorCode::InvalidAccountsLength
-    );
-
-    let mut swap_accounts = PumpfunammBuyAccounts3::parse_accounts(remaining_accounts, *offset)?;
-    if swap_accounts.dex_program_id.key != &pumpfunamm_program::id() {
-        return Err(ErrorCode::InvalidProgramId.into());
-    }
-    // log pool address
-    swap_accounts.pool.key().log();
-
-    // Parse is_cashback_coin flag from pool account data
-    let pool_data = swap_accounts.pool.try_borrow_data()?.to_vec();
-    // Pool layout :
-    // discriminator (8) +
-    // pool_bump: u8 (1) +
-    // index: u16 (2) +
-    // 7 * pubkey (7 * 32)  // creator, base_mint, quote_mint, lp_mint,
-    //                      // pool_base_token_account, pool_quote_token_account, coin_creator
-    // lp_supply: u64 (8) +
-    // is_mayhem_mode: bool (1) +
-    // is_cashback_coin: bool (1)
-    let is_cashback_coin_index: usize =
-        8  // discriminator
-        + 1  // pool_bump
-        + 2  // index
-        + 7 * 32  // 7 pubkeys
-        + 8  // lp_supply
-        + 1; // is_mayhem_mode
-    let is_cashback_coin = if pool_data.len() > is_cashback_coin_index {
-        pool_data[is_cashback_coin_index] != 0
-    } else {
-        false
-    };
-
     if is_cashback_coin {
         require!(
             remaining_accounts.len() >= *offset + BUY_ACCOUNTS_LEN3 + 1,
@@ -575,7 +541,7 @@ pub fn buy3<'a>(
     account_infos.push(swap_accounts.fee_config.to_account_info());
     account_infos.push(swap_accounts.fee_program.to_account_info());
     account_infos.push(pool_v2_new.to_account_info());
-    
+
     if let Some(user_volume_accumulator_account) = user_volume_accumulator_account {
         // insert user_volume_accumulator_account directly before pool_v2
         let insert_index = account_infos.len().saturating_sub(1);
@@ -602,6 +568,68 @@ pub fn buy3<'a>(
     )?;
 
     Ok(amount_out)
+}
+
+pub fn buy3<'a>(
+    remaining_accounts: &'a [AccountInfo<'a>],
+    amount_in: u64,
+    offset: &mut usize,
+    hop_accounts: &mut HopAccounts,
+    hop: usize,
+    proxy_swap: bool,
+    owner_seeds: Option<&[&[&[u8]]]>,
+) -> Result<u64> {
+    msg!("Dex::Pumpfunamm amount_in: {}, offset: {}", amount_in, offset);
+    require!(
+        remaining_accounts.len() >= *offset + BUY_ACCOUNTS_LEN3,
+        ErrorCode::InvalidAccountsLength
+    );
+
+    let mut swap_accounts = PumpfunammBuyAccounts3::parse_accounts(remaining_accounts, *offset)?;
+    if swap_accounts.dex_program_id.key != &pumpfunamm_program::id() {
+        return Err(ErrorCode::InvalidProgramId.into());
+    }
+    // log pool address
+    swap_accounts.pool.key().log();
+
+    // Parse is_cashback_coin flag from pool account data without copying to a new Vec
+    let is_cashback_coin = {
+        let pool_data_ref = swap_accounts.pool.try_borrow_data()?;
+        let pool_data = pool_data_ref.as_ref();
+        // Pool layout :
+        // discriminator (8) +
+        // pool_bump: u8 (1) +
+        // index: u16 (2) +
+        // 7 * pubkey (7 * 32)  // creator, base_mint, quote_mint, lp_mint,
+        //                      // pool_base_token_account, pool_quote_token_account, coin_creator
+        // lp_supply: u64 (8) +
+        // is_mayhem_mode: bool (1) +
+        // is_cashback_coin: bool (1)
+        let is_cashback_coin_index: usize =
+            8  // discriminator
+            + 1  // pool_bump
+            + 2  // index
+            + 7 * 32  // 7 pubkeys
+            + 8  // lp_supply
+            + 1; // is_mayhem_mode
+        if pool_data.len() > is_cashback_coin_index {
+            pool_data[is_cashback_coin_index] != 0
+        } else {
+            false
+        }
+    };
+
+    buy3_inner(
+        remaining_accounts,
+        amount_in,
+        offset,
+        hop_accounts,
+        hop,
+        proxy_swap,
+        owner_seeds,
+        is_cashback_coin,
+        &mut swap_accounts,
+    )
 }
 
 /*============================= pumpfunamm abort function ============================= */
