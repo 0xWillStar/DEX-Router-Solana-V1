@@ -11,6 +11,7 @@ import {
   getAccount,
   AuthorityType,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   MINT_SIZE,
 } from "@solana/spl-token";
@@ -21,12 +22,16 @@ export async function initializeATA(
 ): Promise<PublicKey> {
   const provider = anchor.getProvider();
 
+  // Detect which token program this mint belongs to (Token-2022 or legacy)
+  const mintAccountInfo = await provider.connection.getAccountInfo(mint);
+  const tokenProgramId = mintAccountInfo?.owner ?? TOKEN_PROGRAM_ID;
+
   // Calculate ATA account address
   const ataAddress = await getAssociatedTokenAddress(
     mint,
     owner,
     true, // allowOwnerOffCurve
-    TOKEN_PROGRAM_ID,
+    tokenProgramId,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
@@ -45,7 +50,7 @@ export async function initializeATA(
     ataAddress, // ata
     owner, // owner
     mint, // mint
-    TOKEN_PROGRAM_ID,
+    tokenProgramId,
     ASSOCIATED_TOKEN_PROGRAM_ID
   );
 
@@ -60,7 +65,18 @@ export async function initializeATA(
 }
 
 export async function getATAAddress(mint: PublicKey, owner: PublicKey): Promise<PublicKey> {
-  return await getAssociatedTokenAddress(mint, owner, true, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+  const provider = anchor.getProvider();
+
+  const mintAccountInfo = await provider.connection.getAccountInfo(mint);
+  const tokenProgramId = mintAccountInfo?.owner ?? TOKEN_PROGRAM_ID;
+
+  return await getAssociatedTokenAddress(
+    mint,
+    owner,
+    true,
+    tokenProgramId,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
 }
 
 export async function wrapSOL(
@@ -124,6 +140,30 @@ export async function unwrapSOL(
   return unwrapSignature;
 }
 
+export async function transferSOL(
+  toPubkey: PublicKey,
+  amountLamports: number = 1_000_000_000,
+  fromWallet?: PublicKey
+): Promise<string> {
+  const provider = anchor.getProvider();
+  const wallet = fromWallet || provider.wallet.publicKey;
+
+  const transferInstruction = SystemProgram.transfer({
+    fromPubkey: wallet,
+    toPubkey,
+    lamports: amountLamports,
+  });
+
+  const transaction = new Transaction().add(transferInstruction);
+  const signature = await provider.sendAndConfirm(transaction);
+
+  console.log(
+    `Successfully transferred ${amountLamports / 1_000_000_000} SOL to ${toPubkey.toBase58()}`
+  );
+
+  return signature;
+}
+
 export async function mintIfNeeded(
   mint: PublicKey,
   tokenAccount: PublicKey,
@@ -134,7 +174,11 @@ export async function mintIfNeeded(
   const wallet = provider.wallet.publicKey;
 
   try {
-    const mintInfo = await getMint(provider.connection, mint);
+    // Detect which token program this mint belongs to (Token-2022 or legacy)
+    const mintAccountInfo = await provider.connection.getAccountInfo(mint);
+    const tokenProgramId = mintAccountInfo?.owner ?? TOKEN_PROGRAM_ID;
+
+    const mintInfo = await getMint(provider.connection, mint, undefined, tokenProgramId);
     const mintAuthority = mintInfo.mintAuthority;
 
     if (!mintAuthority || !mintAuthority.equals(wallet)) {
@@ -146,7 +190,7 @@ export async function mintIfNeeded(
 
     let tokenAccountInfo;
     try {
-      tokenAccountInfo = await getAccount(provider.connection, tokenAccount);
+      tokenAccountInfo = await getAccount(provider.connection, tokenAccount, undefined, tokenProgramId);
     } catch (error) {
       console.log(
         `Token account ${tokenAccount.toBase58()} does not exist. Skipping mint.`
@@ -171,7 +215,7 @@ export async function mintIfNeeded(
       wallet,
       Number(mintAmount),
       [], // multiSigners
-      TOKEN_PROGRAM_ID
+      tokenProgramId
     );
 
     const transaction = new Transaction().add(mintInstruction);
@@ -186,4 +230,16 @@ export async function mintIfNeeded(
     console.error(`Error in mintIfNeeded:`, error);
     throw error;
   }
+}
+
+export const PUMP_AMM_PROGRAM_ID = new PublicKey(
+  "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
+);
+
+export function pumpAmmPda(seeds: Array<Buffer | Uint8Array>) {
+  return PublicKey.findProgramAddressSync(seeds, PUMP_AMM_PROGRAM_ID)[0];
+}
+
+export function userVolumeAccumulatorPda(user: PublicKey): PublicKey {
+  return pumpAmmPda([Buffer.from("user_volume_accumulator"), user.toBuffer()]);
 }

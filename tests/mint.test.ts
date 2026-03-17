@@ -6,7 +6,7 @@ import { initializeATA, wrapSOL, getATAAddress } from "./util";
 import * as fs from "fs";
 import * as path from "path";
 
-
+// support token-2022
 describe("raydium mainnet test", () => {
   const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL || "https://kora-8cwrc2-fast-mainnet.helius-rpc.com";
   const connection = new Connection(MAINNET_RPC_URL, "finalized");
@@ -17,7 +17,7 @@ describe("raydium mainnet test", () => {
   );
 
   it("generate mint.json", async () => {
-    const mint = new PublicKey("9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk");
+    const mint = new PublicKey("DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump");
     const walletPubkey = walletKeypair.publicKey;
     
     const accountInfo = await connection.getAccountInfo(mint, { commitment: "finalized" });

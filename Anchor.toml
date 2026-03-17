@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-dex_solana = "GUTKWQrx3tgfCBZPRgTQy3pL57KsRHDSZTMeyhWbCNTc"
+dex_solana = "13kxuZC81hWTX1UnDDxQdpTbTgqug5nHJYiMo2bHC3h7"
 
 [registry]
 url = "https://api.apr.dev"
@@ -16,7 +16,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/raydium_launchpad.test.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/pumpfun.amm.buy.test.ts"
 
 [test]
 startup_wait = 10000
@@ -31,7 +31,7 @@ ledger = "./test-ledger"
 rpc_port = 8899
 
 [[test.validator.account]]
-address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk"
+address = "DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump"
 filename = "tests/mint.json"
 
 [[test.validator.clone]]
@@ -41,21 +41,29 @@ address = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" # USDT
 [[test.validator.clone]]
 address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" # USDC
 
-#[[test.validator.clone]]
-#address = "9jwPEoRFzvx5EJzY7QgtYsKKoHMSo63isc8ga42gbonk" # ASC 
 [[test.validator.clone]]
-address = "LanMV9sAd7wArD4vJFi2qDdfnVhFxYSUg6eADduJ3uj" # Raydium Launchpad
+address = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA" # pumpfun amm
 [[test.validator.clone]]
-address = "6s1xP3hpbAfFoNtUNF8mfHsjr2Bd97JxFJRWLbL6aHuX" # global_config
+address = "2waPHeXir1Ukt3TpFuUsjZdp59k6zFaPGZqkW7HRndfh" # pool
 [[test.validator.clone]]
-address = "BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4" # platform_config
+address = "ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw" # global_config
 [[test.validator.clone]]
-address = "Cr2DUkyNn2mL9oyfdHFodsuUeJ8Z2PSQXV7LEUGRc8Hz" # pool_state
+address = "8wdL6Htn346sjpmosDm3gCJXkDbWBbeCc3LmYRNApump" # base_mint
 [[test.validator.clone]]
-address = "2XoaAqsaNbp7PLin6WLaudVPWNnKAN1jg51moKcas3dU" # base_vault
+address = "7MBZvqy3HHv8NmNidbo7Xv9JE4UCrYP1mhk4sF794oVR" # pool_base_token_account
 [[test.validator.clone]]
-address = "6pKBmVLbLNfeJNDj9M2wwYHYF3hhtqGczLiaCbTTuEk2" # quote_vault
+address = "6nW547d5bGxymRVhTe5rQxRE86nLECiGmBRAe9xMySHz" # pool_quote_token_account
 [[test.validator.clone]]
-address = "84FqPoha4BJCn4LrXtzFQ73ZEHkbFbXparZMPg7wdDzS" # platform_claim_fee_vault
+address = "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV" # protocol_fee_recipient
 [[test.validator.clone]]
-address = "8xP9ZgSwidck42FQetc6VLV5cg4Gbms81ZEcQytWqRf8" # creator_claim_fee_vault
+address = "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb" # protocol_fee_recipient_token_account
+[[test.validator.clone]]
+address = "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR" # event_authority
+[[test.validator.clone]]
+address = "AkY6SmpmnZTJUxeBDpj5hH83YBYfgMTcbf4wLo9JzuuM" # coin_creator_vault_ata
+[[test.validator.clone]]
+address = "C2aFPdENg4A2HQsmrd5rTw5TaYBX5Ku887cWjbFKtZpw" # global_volume_accumulator
+[[test.validator.clone]]
+address = "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx" # fee_config
+[[test.validator.clone]]
+address = "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ" # fee_program
