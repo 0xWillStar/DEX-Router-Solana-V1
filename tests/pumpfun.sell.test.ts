@@ -3,9 +3,9 @@ import { Program, BN } from "@coral-xyz/anchor";
 import { DexSolana } from "../target/types/dex_solana";
 import { PublicKey, VersionedTransaction, TransactionMessage, ComputeBudgetProgram } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { initializeATA, wrapSOL, getATAAddress, userVolumeAccumulatorPda, transferSOL, mintIfNeeded } from "./util";
+import { initializeATA, wrapSOL, getATAAddress, userVolumeAccumulatorPda1, transferSOL, mintIfNeeded } from "./util";
 
-describe("pumpfun.amm.sell test", () => {
+describe("pumpfun.sell test", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
@@ -13,35 +13,29 @@ describe("pumpfun.amm.sell test", () => {
 
   const saAuthority = new PublicKey("EMeFFvHcarJGS9jPcJu4qeugSmXJn3BJUm53QYv4P9Pk");
 
-  // https://solscan.io/tx/3K9bt8chnK6Tiu6kNVjPDbd59b3YmwUNQSeaY8vEtncjHHhCtWVNrg35DPRM81NaRoWy3HjfegsWa8ZtTWFC82hG
+  // https://solscan.io/tx/kc9iMbPYKXwjT2bZGjYiSrXtiN57Mi8RsJtmdP54uVfxMV66GPr6SqqrhoY99mGo1NmmRKD7yFpXV8HSwohVy7o
 // [[test.validator.clone]]
-// address = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA" # pumpfun amm
+// address = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P" # pumpfun
 // [[test.validator.clone]]
-// address = "BSFWC5p9PswcFpoLkv19SLeXCBHx1FeQMVgnhmPwtfdK" # pool
+// address = "4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf" # global
 // [[test.validator.clone]]
-// address = "ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw" # global_config
+// address = "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV" # fee_recipient
 // [[test.validator.clone]]
-// address = "5NBjUzyjv9LgMdpWxWxWSdoY5sFGVRiozLGkPS4Lk87J" # pool_base_token_account
+// address = "CpUqTa2ayWZBmoxL51A1W9ytjptvE6cLdhwhpFVNHN3p" # bonding_curve
 // [[test.validator.clone]]
-// address = "9xAWctDwpqDkHZ3WP2qc9TGNMqmXWYqTAUwuEDjRxZBT" # pool_quote_token_account
+// address = "44NP7DtbsBiMBYzV4rsmmo55qsaCgTfd8AgPYywbi4hd" # associated_bonding_curve
 // [[test.validator.clone]]
-// address = "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV" # protocol_fee_recipient
+// address = "Ce6TQqeHC9p8KetsN6JsjHK7UTZk7nasjjnr7XxXp9F1" # event_authority
 // [[test.validator.clone]]
-// address = "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb" # protocol_fee_recipient_token_account
-// [[test.validator.clone]]
-// address = "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR" # event_authority
-// [[test.validator.clone]]
-// address = "GDfqKXYUX3cppMPwrgmP5WcUy2YLJZMeUDxYV5bg9mVg" # coin_creator_vault_ata
-// [[test.validator.clone]]
-// address = "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx" # fee_config
+// address = "8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt" # fee_config
 // [[test.validator.clone]]
 // address = "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ" # fee_program
-  it("sell3-cashback", async () => {
+  it("sell2-cashback", async () => {
     const FEE_ACCOUNT = new PublicKey("GJHUsZwxMj6CaMznx5x23GX3Ka7d334H3473RdmjSAv5");
 
     // Account addresses
     const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
-    const BASE_MINT = new PublicKey("DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump");
+    const BASE_MINT = new PublicKey("DTvbmZ8svcJ9Ke68urvmG9E1groaSE55m3c2rLM2pump");
     
     const provider = anchor.getProvider();
     const wallet = provider.wallet.publicKey;
@@ -65,34 +59,27 @@ describe("pumpfun.amm.sell test", () => {
     const destinationTokenSa = await getATAAddress(WSOL_MINT, saAuthority);
     console.log("destinationTokenSa: ", destinationTokenSa.toBase58());
 
-    const userVolumeAccumulator = userVolumeAccumulatorPda(saAuthority);
-    const userVolumeAccumulatorAccount = await getATAAddress(WSOL_MINT, userVolumeAccumulator);
+    const userVolumeAccumulator = userVolumeAccumulatorPda1(saAuthority);
 
-    const pumpfunammSell3AccountsConfig = [
-      { pubkey: new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"), isSigner: false, isWritable: false }, // pumpfunamm program
+    const pumpfunSell2AccountsConfig = [
+      { pubkey: new PublicKey("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"), isSigner: false, isWritable: false }, // pumpfun program
       { pubkey: saAuthority, isSigner: false, isWritable: true }, // saAuthority is a PDA, signed by program using seeds, no external signature needed
       { pubkey: sourceTokenSa, isSigner: false, isWritable: true },
       { pubkey: destinationTokenSa, isSigner: false, isWritable: true },
-      { pubkey: new PublicKey("BSFWC5p9PswcFpoLkv19SLeXCBHx1FeQMVgnhmPwtfdK"), isSigner: false, isWritable: true },  // pool
-      { pubkey: new PublicKey("ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw"), isSigner: false, isWritable: false }, // global_config
-      { pubkey: new PublicKey("DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump"), isSigner: false, isWritable: false }, // base_mint
-      { pubkey: new PublicKey("So11111111111111111111111111111111111111112"), isSigner: false, isWritable: false }, // quote_mint
-      { pubkey: new PublicKey("5NBjUzyjv9LgMdpWxWxWSdoY5sFGVRiozLGkPS4Lk87J"), isSigner: false, isWritable: true }, // pool_base_token_account
-      { pubkey: new PublicKey("9xAWctDwpqDkHZ3WP2qc9TGNMqmXWYqTAUwuEDjRxZBT"), isSigner: false, isWritable: true }, // pool_quote_token_account
-      { pubkey: new PublicKey("62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV"), isSigner: false, isWritable: false }, // protocol_fee_recipient
-      { pubkey: new PublicKey("94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb"), isSigner: false, isWritable: true }, // protocol_fee_recipient_token_account
-      { pubkey: TOKEN_2022_PROGRAM_ID, isSigner: false, isWritable: false }, // base_token_program
-      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // quote_token_program
+      { pubkey: new PublicKey("4wTV1YmiEkRvAtNtsSGPtUrqRYQMe5SKy2uB4Jjaxnjf"), isSigner: false, isWritable: false },  // global
+      { pubkey: new PublicKey("62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV"), isSigner: false, isWritable: true }, // fee_recipient
+      { pubkey: new PublicKey("DTvbmZ8svcJ9Ke68urvmG9E1groaSE55m3c2rLM2pump"), isSigner: false, isWritable: false }, // mint
+      { pubkey: new PublicKey("CpUqTa2ayWZBmoxL51A1W9ytjptvE6cLdhwhpFVNHN3p"), isSigner: false, isWritable: true }, // bonding_curve
+      { pubkey: new PublicKey("44NP7DtbsBiMBYzV4rsmmo55qsaCgTfd8AgPYywbi4hd"), isSigner: false, isWritable: true }, // associated_bonding_curve
       { pubkey: new PublicKey("11111111111111111111111111111111"), isSigner: false, isWritable: false }, // system_program
-      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // associated_token_program
-      { pubkey: new PublicKey("GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR"), isSigner: false, isWritable: false }, // event_authority
-      { pubkey: new PublicKey("GDfqKXYUX3cppMPwrgmP5WcUy2YLJZMeUDxYV5bg9mVg"), isSigner: false, isWritable: true }, // coin_creator_vault_ata
-      { pubkey: new PublicKey("CvdxEzWWKNR6WtLcgjFcvn9ndSufpiMTFaZgbrmQcLQb"), isSigner: false, isWritable: false }, // coin_creator_vault_authority
-      { pubkey: new PublicKey("5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx"), isSigner: false, isWritable: false }, // fee_config
+      { pubkey: new PublicKey("HkVWUATjPD5hFGxRheYdDtp7odTrsm8qEpx8nRQmK3fT"), isSigner: false, isWritable: true }, // creator_vault
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // wsol_program
+      { pubkey: TOKEN_2022_PROGRAM_ID, isSigner: false, isWritable: false }, // token_program
+      { pubkey: new PublicKey("Ce6TQqeHC9p8KetsN6JsjHK7UTZk7nasjjnr7XxXp9F1"), isSigner: false, isWritable: false }, // event_authority
+      { pubkey: new PublicKey("8Wf5TiAheLUqBrKXeYg2JtAFFMWtKdG2BSFgqUcPVwTt"), isSigner: false, isWritable: false }, // fee_config
       { pubkey: new PublicKey("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"), isSigner: false, isWritable: false }, // fee_program
-      { pubkey: userVolumeAccumulatorAccount, isSigner: false, isWritable: true }, // user_volume_accumulator_account
       { pubkey: userVolumeAccumulator, isSigner: false, isWritable: true }, // userVolumeAccumulator
-      { pubkey: new PublicKey("492ksfMaivinfJpyazaHyM99a74kAXm8SRcS7zFimbqM"), isSigner: false, isWritable: false }, // pool_v2
+      { pubkey: new PublicKey("2NhEPNqTiPcja17JQBsYUtw96UQxh2dc2SixJDrpz5XX"), isSigner: false, isWritable: false }, // pool_v2
     ];
 
     // Build SwapArgs
@@ -104,7 +91,7 @@ describe("pumpfun.amm.sell test", () => {
       routes: [
         [
           {
-            dexes: [{ pumpfunammSell3: {} }],
+            dexes: [{ pumpfunSell2: {} }],
             weights: Buffer.from([100]), // 100% weight
           },
         ],
@@ -140,7 +127,7 @@ describe("pumpfun.amm.sell test", () => {
         destinationTokenProgram: TOKEN_PROGRAM_ID,  // ！！！！！！don't forget to change this
       })
       .preInstructions([computeBudgetIx])
-      .remainingAccounts(pumpfunammSell3AccountsConfig)
+      .remainingAccounts(pumpfunSell2AccountsConfig)
       .transaction();
 
     // Get latest blockhash

@@ -3,9 +3,9 @@ import { Program, BN } from "@coral-xyz/anchor";
 import { DexSolana } from "../target/types/dex_solana";
 import { PublicKey, VersionedTransaction, TransactionMessage, ComputeBudgetProgram } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { initializeATA, wrapSOL, getATAAddress, userVolumeAccumulatorPda, transferSOL, mintIfNeeded } from "./util";
+import { initializeATA, wrapSOL, getATAAddress, userVolumeAccumulatorPda, transferSOL } from "./util";
 
-describe("pumpfun.amm.sell test", () => {
+describe("pumpfun.amm.buy test", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
@@ -13,35 +13,39 @@ describe("pumpfun.amm.sell test", () => {
 
   const saAuthority = new PublicKey("EMeFFvHcarJGS9jPcJu4qeugSmXJn3BJUm53QYv4P9Pk");
 
-  // https://solscan.io/tx/3K9bt8chnK6Tiu6kNVjPDbd59b3YmwUNQSeaY8vEtncjHHhCtWVNrg35DPRM81NaRoWy3HjfegsWa8ZtTWFC82hG
+  // https://solscan.io/tx/3Y6RYZAuJER7HLeZXWwD9Rv8KgDQpRWoUNZx27qXNDqXcbhGTDWPhENyM6pyFbUJqZqh2YW3JiKfxtKm1VA3GeWg
 // [[test.validator.clone]]
 // address = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA" # pumpfun amm
 // [[test.validator.clone]]
-// address = "BSFWC5p9PswcFpoLkv19SLeXCBHx1FeQMVgnhmPwtfdK" # pool
+// address = "6EfDrEwGcdm5fjeFJuAfBpi1SAJjKtHmnFnJeBChghEg" # pool
 // [[test.validator.clone]]
 // address = "ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw" # global_config
 // [[test.validator.clone]]
-// address = "5NBjUzyjv9LgMdpWxWxWSdoY5sFGVRiozLGkPS4Lk87J" # pool_base_token_account
+// address = "7fwejnkopLFAmoyiHQiV8efqQhGYPRcZj5p31fvkpump" # base_mint
 // [[test.validator.clone]]
-// address = "9xAWctDwpqDkHZ3WP2qc9TGNMqmXWYqTAUwuEDjRxZBT" # pool_quote_token_account
+// address = "8Bj2QEwFa7y38w1C8pTwgp86dceL2Bm2vNHqK5kiPkHi" # pool_base_token_account
 // [[test.validator.clone]]
-// address = "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV" # protocol_fee_recipient
+// address = "DbyUXqoZgmeNXsRhMDanahmqdhdNQg6STEPLQArifWP6" # pool_quote_token_account
 // [[test.validator.clone]]
-// address = "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb" # protocol_fee_recipient_token_account
+// address = "JCRGumoE9Qi5BBgULTgdgTLjSgkCMSbF62ZZfGs84JeU" # protocol_fee_recipient
+// [[test.validator.clone]]
+// address = "DWpvfqzGWuVy9jVSKSShdM2733nrEsnnhsUStYbkj6Nn" # protocol_fee_recipient_token_account
 // [[test.validator.clone]]
 // address = "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR" # event_authority
 // [[test.validator.clone]]
-// address = "GDfqKXYUX3cppMPwrgmP5WcUy2YLJZMeUDxYV5bg9mVg" # coin_creator_vault_ata
+// address = "8ouSp8tD8jmXzMphnViVxjeCWrfqRKpNaRGfus2Ba2ni" # coin_creator_vault_ata
+// [[test.validator.clone]]
+// address = "C2aFPdENg4A2HQsmrd5rTw5TaYBX5Ku887cWjbFKtZpw" # global_volume_accumulator
 // [[test.validator.clone]]
 // address = "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx" # fee_config
 // [[test.validator.clone]]
 // address = "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ" # fee_program
-  it("sell3-cashback", async () => {
+  it("buy3-no cashback", async () => {
     const FEE_ACCOUNT = new PublicKey("GJHUsZwxMj6CaMznx5x23GX3Ka7d334H3473RdmjSAv5");
 
     // Account addresses
     const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
-    const BASE_MINT = new PublicKey("DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump");
+    const BASE_MINT = new PublicKey("7fwejnkopLFAmoyiHQiV8efqQhGYPRcZj5p31fvkpump");
     
     const provider = anchor.getProvider();
     const wallet = provider.wallet.publicKey;
@@ -53,58 +57,56 @@ describe("pumpfun.amm.sell test", () => {
 
     // Initialize wallet's ATA accounts
     console.log("\nInitializing wallet's ATA accounts...");
-    const sourceTokenAccount = await initializeATA(BASE_MINT, wallet);
-    const destinationTokenAccount = await initializeATA(WSOL_MINT, wallet);
+    const sourceTokenAccount = await initializeATA(WSOL_MINT, wallet);
+    const destinationTokenAccount = await initializeATA(BASE_MINT, wallet);
 
-    console.log("\nChecking if mint is needed for BASE_MINT...");
-    await mintIfNeeded(BASE_MINT, sourceTokenAccount, BigInt(1_000_000_000), BigInt(1_000_000_000));
+    // Transfer SOL to sourceTokenAccount
+    await wrapSOL(sourceTokenAccount, 2_000_000_000);
 
-
-    const sourceTokenSa = await getATAAddress(BASE_MINT, saAuthority);
+    const sourceTokenSa = await getATAAddress(WSOL_MINT, saAuthority);
     console.log("sourceTokenSa: ", sourceTokenSa.toBase58());
-    const destinationTokenSa = await getATAAddress(WSOL_MINT, saAuthority);
+    const destinationTokenSa = await getATAAddress(BASE_MINT, saAuthority);
     console.log("destinationTokenSa: ", destinationTokenSa.toBase58());
 
     const userVolumeAccumulator = userVolumeAccumulatorPda(saAuthority);
-    const userVolumeAccumulatorAccount = await getATAAddress(WSOL_MINT, userVolumeAccumulator);
 
-    const pumpfunammSell3AccountsConfig = [
+    const pumpfunammBuy3AccountsConfig = [
       { pubkey: new PublicKey("pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"), isSigner: false, isWritable: false }, // pumpfunamm program
       { pubkey: saAuthority, isSigner: false, isWritable: true }, // saAuthority is a PDA, signed by program using seeds, no external signature needed
       { pubkey: sourceTokenSa, isSigner: false, isWritable: true },
       { pubkey: destinationTokenSa, isSigner: false, isWritable: true },
-      { pubkey: new PublicKey("BSFWC5p9PswcFpoLkv19SLeXCBHx1FeQMVgnhmPwtfdK"), isSigner: false, isWritable: true },  // pool
+      { pubkey: new PublicKey("6EfDrEwGcdm5fjeFJuAfBpi1SAJjKtHmnFnJeBChghEg"), isSigner: false, isWritable: true },  // pool
       { pubkey: new PublicKey("ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw"), isSigner: false, isWritable: false }, // global_config
-      { pubkey: new PublicKey("DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump"), isSigner: false, isWritable: false }, // base_mint
+      { pubkey: new PublicKey("7fwejnkopLFAmoyiHQiV8efqQhGYPRcZj5p31fvkpump"), isSigner: false, isWritable: false }, // base_mint
       { pubkey: new PublicKey("So11111111111111111111111111111111111111112"), isSigner: false, isWritable: false }, // quote_mint
-      { pubkey: new PublicKey("5NBjUzyjv9LgMdpWxWxWSdoY5sFGVRiozLGkPS4Lk87J"), isSigner: false, isWritable: true }, // pool_base_token_account
-      { pubkey: new PublicKey("9xAWctDwpqDkHZ3WP2qc9TGNMqmXWYqTAUwuEDjRxZBT"), isSigner: false, isWritable: true }, // pool_quote_token_account
-      { pubkey: new PublicKey("62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV"), isSigner: false, isWritable: false }, // protocol_fee_recipient
-      { pubkey: new PublicKey("94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb"), isSigner: false, isWritable: true }, // protocol_fee_recipient_token_account
-      { pubkey: TOKEN_2022_PROGRAM_ID, isSigner: false, isWritable: false }, // base_token_program
+      { pubkey: new PublicKey("8Bj2QEwFa7y38w1C8pTwgp86dceL2Bm2vNHqK5kiPkHi"), isSigner: false, isWritable: true }, // pool_base_token_account
+      { pubkey: new PublicKey("DbyUXqoZgmeNXsRhMDanahmqdhdNQg6STEPLQArifWP6"), isSigner: false, isWritable: true }, // pool_quote_token_account
+      { pubkey: new PublicKey("JCRGumoE9Qi5BBgULTgdgTLjSgkCMSbF62ZZfGs84JeU"), isSigner: false, isWritable: false }, // protocol_fee_recipient
+      { pubkey: new PublicKey("DWpvfqzGWuVy9jVSKSShdM2733nrEsnnhsUStYbkj6Nn"), isSigner: false, isWritable: true }, // protocol_fee_recipient_token_account
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // base_token_program
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // quote_token_program
       { pubkey: new PublicKey("11111111111111111111111111111111"), isSigner: false, isWritable: false }, // system_program
       { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }, // associated_token_program
       { pubkey: new PublicKey("GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR"), isSigner: false, isWritable: false }, // event_authority
-      { pubkey: new PublicKey("GDfqKXYUX3cppMPwrgmP5WcUy2YLJZMeUDxYV5bg9mVg"), isSigner: false, isWritable: true }, // coin_creator_vault_ata
-      { pubkey: new PublicKey("CvdxEzWWKNR6WtLcgjFcvn9ndSufpiMTFaZgbrmQcLQb"), isSigner: false, isWritable: false }, // coin_creator_vault_authority
+      { pubkey: new PublicKey("8ouSp8tD8jmXzMphnViVxjeCWrfqRKpNaRGfus2Ba2ni"), isSigner: false, isWritable: true }, // coin_creator_vault_ata
+      { pubkey: new PublicKey("FrpXQDwiQjTsxWi1GjcAfQ8WXtiwUSo8PJrbzd8HeAkj"), isSigner: false, isWritable: false }, // coin_creator_vault_authority
+      { pubkey: new PublicKey("C2aFPdENg4A2HQsmrd5rTw5TaYBX5Ku887cWjbFKtZpw"), isSigner: false, isWritable: true }, // global_volume_accumulator
+      { pubkey: userVolumeAccumulator, isSigner: false, isWritable: true }, // user_volume_accumulator
       { pubkey: new PublicKey("5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx"), isSigner: false, isWritable: false }, // fee_config
       { pubkey: new PublicKey("pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ"), isSigner: false, isWritable: false }, // fee_program
-      { pubkey: userVolumeAccumulatorAccount, isSigner: false, isWritable: true }, // user_volume_accumulator_account
-      { pubkey: userVolumeAccumulator, isSigner: false, isWritable: true }, // userVolumeAccumulator
-      { pubkey: new PublicKey("492ksfMaivinfJpyazaHyM99a74kAXm8SRcS7zFimbqM"), isSigner: false, isWritable: false }, // pool_v2
+      { pubkey: new PublicKey("9S3HCEX9BtBVJ9Kx1ZUVtvEeEJYWKoujqmr1CCCsJKv2"), isSigner: false, isWritable: false }, // pool_v2
     ];
 
     // Build SwapArgs
     const swapArgs = {
-      amountIn: new BN(100000000),
+      amountIn: new BN(1000000),
       expectAmountOut: new BN(133643),
-      minReturn: new BN(1),
-      amounts: [new BN(100000000)], // Only one route, so only one amount
+      minReturn: new BN(133000),
+      amounts: [new BN(1000000)], // Only one route, so only one amount
       routes: [
         [
           {
-            dexes: [{ pumpfunammSell3: {} }],
+            dexes: [{ pumpfunammBuy3: {} }],
             weights: Buffer.from([100]), // 100% weight
           },
         ],
@@ -129,18 +131,18 @@ describe("pumpfun.amm.sell test", () => {
         payer: anchor.getProvider().wallet.publicKey,
         sourceTokenAccount: sourceTokenAccount,
         destinationTokenAccount: destinationTokenAccount,
-        sourceMint: BASE_MINT,  // ！！！！！！don't forget to change this
-        destinationMint: WSOL_MINT,  // ！！！！！！don't forget to change this
+        sourceMint: WSOL_MINT,   // ！！！！！！don't forget to change this
+        destinationMint: BASE_MINT,   // ！！！！！！don't forget to change this
         commissionAccount: FEE_ACCOUNT,
         platformFeeAccount: FEE_ACCOUNT,
         saAuthority: saAuthority,
         sourceTokenSa: sourceTokenSa,
         destinationTokenSa: destinationTokenSa,
-        sourceTokenProgram: TOKEN_2022_PROGRAM_ID,  // ！！！！！！don't forget to change this
-        destinationTokenProgram: TOKEN_PROGRAM_ID,  // ！！！！！！don't forget to change this
+        sourceTokenProgram: TOKEN_PROGRAM_ID,   // ！！！！！！don't forget to change this
+        destinationTokenProgram: TOKEN_PROGRAM_ID,   // ！！！！！！don't forget to change this
       })
       .preInstructions([computeBudgetIx])
-      .remainingAccounts(pumpfunammSell3AccountsConfig)
+      .remainingAccounts(pumpfunammBuy3AccountsConfig)
       .transaction();
 
     // Get latest blockhash
@@ -166,16 +168,14 @@ describe("pumpfun.amm.sell test", () => {
     if (simulation.value.err) {
       console.error("Transaction simulation failed!");
       console.error("Error:", JSON.stringify(simulation.value.err, null, 2));
-      console.error(
-        "Logs:\n" + (simulation.value.logs ? simulation.value.logs.join("\n") : "<no logs>")
-      );
+      console.error("Logs:", simulation.value.logs);
       console.error("Compute units consumed:", simulation.value.unitsConsumed);
       throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}`);
     }
 
     console.log("Simulation successful! Compute units consumed:", simulation.value.unitsConsumed);
     if (simulation.value.logs) {
-      console.log("\nSimulation logs:\n" + simulation.value.logs.join("\n"));
+      console.log("\nSimulation logs:", simulation.value.logs);
     }
 
     // After successful simulation, send actual transaction

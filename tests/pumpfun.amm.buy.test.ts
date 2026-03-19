@@ -13,6 +13,7 @@ describe("pumpfun.amm.buy test", () => {
 
   const saAuthority = new PublicKey("EMeFFvHcarJGS9jPcJu4qeugSmXJn3BJUm53QYv4P9Pk");
 
+  // https://solscan.io/tx/2EXZ9xkU7UGRdLZXSP5UX7PkaQNufAypHDwDxwf6wAyjFFx6GQMaGpHUsAwhNJVyS9Pb5ASErx9JDf58VCph3NKM
 // [[test.validator.clone]]
 // address = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA" # pumpfun amm
 // [[test.validator.clone]]
@@ -39,7 +40,7 @@ describe("pumpfun.amm.buy test", () => {
 // address = "5PHirr8joyTMp9JMm6nW7hNDVyEYdkzDqazxPD7RaTjx" # fee_config
 // [[test.validator.clone]]
 // address = "pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ" # fee_program
-  it("buy3", async () => {
+  it("buy3-cashback", async () => {
     const FEE_ACCOUNT = new PublicKey("GJHUsZwxMj6CaMznx5x23GX3Ka7d334H3473RdmjSAv5");
 
     // Account addresses

@@ -17,7 +17,7 @@ describe("raydium mainnet test", () => {
   );
 
   it("generate mint.json", async () => {
-    const mint = new PublicKey("DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump");
+    const mint = new PublicKey("3oe4Wk6JKvT5HGPoQQrpjP3SyRNswEKMT8vj9U8Hpump");
     const walletPubkey = walletKeypair.publicKey;
     
     const accountInfo = await connection.getAccountInfo(mint, { commitment: "finalized" });

@@ -1,10 +1,11 @@
 import * as anchor from "@coral-xyz/anchor";
-import { PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
+import { PublicKey, Transaction, SystemProgram, Keypair } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
   createSyncNativeInstruction,
   createCloseAccountInstruction,
+  createInitializeAccount3Instruction,
   createMintToInstruction,
   createSetAuthorityInstruction,
   getMint,
@@ -111,6 +112,37 @@ export async function wrapSOL(
   );
 
   return wrapSignature;
+}
+
+export async function createTokenAccount(
+  mint: PublicKey,
+  owner: PublicKey,
+  tokenProgramId: PublicKey = TOKEN_PROGRAM_ID
+): Promise<{ publicKey: PublicKey; keypair: Keypair }> {
+  const provider = anchor.getProvider();
+
+  const keypair = Keypair.generate();
+  const rent = await provider.connection.getMinimumBalanceForRentExemption(165);
+
+  const createAccountIx = SystemProgram.createAccount({
+    fromPubkey: provider.wallet.publicKey,
+    newAccountPubkey: keypair.publicKey,
+    lamports: rent,
+    space: 165,
+    programId: tokenProgramId,
+  });
+
+  const initIx = createInitializeAccount3Instruction(
+    keypair.publicKey,
+    mint,
+    owner,
+    tokenProgramId
+  );
+
+  const tx = new Transaction().add(createAccountIx, initIx);
+  await provider.sendAndConfirm(tx, [keypair]);
+
+  return { publicKey: keypair.publicKey, keypair };
 }
 
 export async function unwrapSOL(
@@ -236,10 +268,22 @@ export const PUMP_AMM_PROGRAM_ID = new PublicKey(
   "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA",
 );
 
+export const PUMP_PROGRAM_ID = new PublicKey(
+  "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+);
+
+export function pumpPda(seeds: Array<Buffer | Uint8Array>) {
+  return PublicKey.findProgramAddressSync(seeds, PUMP_PROGRAM_ID)[0];
+}
+
 export function pumpAmmPda(seeds: Array<Buffer | Uint8Array>) {
   return PublicKey.findProgramAddressSync(seeds, PUMP_AMM_PROGRAM_ID)[0];
 }
 
 export function userVolumeAccumulatorPda(user: PublicKey): PublicKey {
   return pumpAmmPda([Buffer.from("user_volume_accumulator"), user.toBuffer()]);
+}
+
+export function userVolumeAccumulatorPda1(user: PublicKey): PublicKey {
+  return pumpPda([Buffer.from("user_volume_accumulator"), user.toBuffer()]);
 }

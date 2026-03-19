@@ -16,7 +16,7 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/pumpfun.amm.buy.test.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/pumpfun.amm.buy1.test.ts"
 
 [test]
 startup_wait = 10000
@@ -31,7 +31,7 @@ ledger = "./test-ledger"
 rpc_port = 8899
 
 [[test.validator.account]]
-address = "DZBDHnfn3McJpf8QXQ1PVsnE7VTZ2vVLbMZgYq9Qpump"
+address = "3oe4Wk6JKvT5HGPoQQrpjP3SyRNswEKMT8vj9U8Hpump"
 filename = "tests/mint.json"
 
 [[test.validator.clone]]
@@ -44,23 +44,23 @@ address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" # USDC
 [[test.validator.clone]]
 address = "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA" # pumpfun amm
 [[test.validator.clone]]
-address = "2waPHeXir1Ukt3TpFuUsjZdp59k6zFaPGZqkW7HRndfh" # pool
+address = "6EfDrEwGcdm5fjeFJuAfBpi1SAJjKtHmnFnJeBChghEg" # pool
 [[test.validator.clone]]
 address = "ADyA8hdefvWN2dbGGWFotbzWxrAvLW83WG6QCVXvJKqw" # global_config
 [[test.validator.clone]]
-address = "8wdL6Htn346sjpmosDm3gCJXkDbWBbeCc3LmYRNApump" # base_mint
+address = "7fwejnkopLFAmoyiHQiV8efqQhGYPRcZj5p31fvkpump" # base_mint
 [[test.validator.clone]]
-address = "7MBZvqy3HHv8NmNidbo7Xv9JE4UCrYP1mhk4sF794oVR" # pool_base_token_account
+address = "8Bj2QEwFa7y38w1C8pTwgp86dceL2Bm2vNHqK5kiPkHi" # pool_base_token_account
 [[test.validator.clone]]
-address = "6nW547d5bGxymRVhTe5rQxRE86nLECiGmBRAe9xMySHz" # pool_quote_token_account
+address = "DbyUXqoZgmeNXsRhMDanahmqdhdNQg6STEPLQArifWP6" # pool_quote_token_account
 [[test.validator.clone]]
-address = "62qc2CNXwrYqQScmEdiZFFAnJR262PxWEuNQtxfafNgV" # protocol_fee_recipient
+address = "JCRGumoE9Qi5BBgULTgdgTLjSgkCMSbF62ZZfGs84JeU" # protocol_fee_recipient
 [[test.validator.clone]]
-address = "94qWNrtmfn42h3ZjUZwWvK1MEo9uVmmrBPd2hpNjYDjb" # protocol_fee_recipient_token_account
+address = "DWpvfqzGWuVy9jVSKSShdM2733nrEsnnhsUStYbkj6Nn" # protocol_fee_recipient_token_account
 [[test.validator.clone]]
 address = "GS4CU59F31iL7aR2Q8zVS8DRrcRnXX1yjQ66TqNVQnaR" # event_authority
 [[test.validator.clone]]
-address = "AkY6SmpmnZTJUxeBDpj5hH83YBYfgMTcbf4wLo9JzuuM" # coin_creator_vault_ata
+address = "8ouSp8tD8jmXzMphnViVxjeCWrfqRKpNaRGfus2Ba2ni" # coin_creator_vault_ata
 [[test.validator.clone]]
 address = "C2aFPdENg4A2HQsmrd5rTw5TaYBX5Ku887cWjbFKtZpw" # global_volume_accumulator
 [[test.validator.clone]]
