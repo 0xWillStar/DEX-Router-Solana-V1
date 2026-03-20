@@ -24,8 +24,8 @@ describe("raydium mainnet test", () => {
   });
   anchor.setProvider(provider);
 
-  const programId = process.env.MAINNET_PROGRAM_ID || "13kxuZC81hWTX1UnDDxQdpTbTgqug5nHJYiMo2bHC3h7";
-  const saAuthority = new PublicKey("EMeFFvHcarJGS9jPcJu4qeugSmXJn3BJUm53QYv4P9Pk");
+  const programId = process.env.MAINNET_PROGRAM_ID || "ASq1z7HmVhCpSdncgy964tUrSVHWdzDJQXuVViCdQv1W";
+  const saAuthority = new PublicKey("6ZqixRyDqfHtJMMKFbZwTPYfzB3cCs4VsE5WLMyAotGr");
   
   if (dexSolanaIDL.address !== programId) {
     dexSolanaIDL.address = programId;
@@ -82,8 +82,8 @@ describe("raydium mainnet test", () => {
     // Build SwapArgs
     const swapArgs = {
       amountIn: new BN(1_000_000), // 0.001 WSOL
-      expectAmountOut: new BN(133_643),
-      minReturn: new BN(133_000),
+      expectAmountOut: new BN(88_643),
+      minReturn: new BN(88_000),
       amounts: [new BN(1_000_000)],
       routes: [
         [

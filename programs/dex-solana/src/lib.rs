@@ -19,10 +19,10 @@ pub use limitorder::instructions::*;
 pub use processor::*;
 
 #[cfg(feature = "staging")]
-declare_id!("13kxuZC81hWTX1UnDDxQdpTbTgqug5nHJYiMo2bHC3h7");
+declare_id!("ASq1z7HmVhCpSdncgy964tUrSVHWdzDJQXuVViCdQv1W");
 
 #[cfg(not(feature = "staging"))]
-declare_id!("13kxuZC81hWTX1UnDDxQdpTbTgqug5nHJYiMo2bHC3h7");
+declare_id!("ASq1z7HmVhCpSdncgy964tUrSVHWdzDJQXuVViCdQv1W");
 
 #[program]
 pub mod dex_solana {
